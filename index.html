@@ -80,7 +80,7 @@ const PLAYER_R = 17;
 const S = CELL_W; // tile canvas size
 function colX(c){ return RIVER_W + STREET + c*(CELL_W+STREET); }
 function cellRect(row,col){ return {x:colX(col), y:row*ROW_H+STREET, w:CELL_W, h:CELL_H}; }
-const LANDMARKS = ['pombal','luz','alvalade','aqueduto','amoreiras','estrela','castelo','belem'];
+const LANDMARKS = ['pombal','luz','rossio','aqueduto','amoreiras','estrela','castelo','belem','alvalade'];
 const TOTAL_PLOTS = 10;
 
 // ---------- sprite helpers ----------
@@ -704,29 +704,6 @@ function mkBuilding(v){ return mkTile(g=>{
   // fachada sul: pastel de Lisboa; algumas (v par múltiplo de 4+1) com azulejos
   wallBand(g,16,S-32,S-15,30,FACADES[v%FACADES.length], v%4===1);
 });}
-function mkSquare(){ return mkTile(g=>{
-  tileBase(g);
-  // calçada wave pattern
-  g.fillStyle='#e6dfc9'; rr(g,10,10,S-20,S-20,8); g.fill();
-  g.strokeStyle='rgba(60,60,70,.5)'; g.lineWidth=2;
-  for(let y=16;y<S-10;y+=13) for(let x=10;x<S-10;x+=26){
-    g.beginPath(); g.arc(x+((y/13)%2)*13,y,7,Math.PI,0); g.stroke(); }
-  // trees at corners
-  for(const p of [[28,28],[S-28,28],[28,S-28],[S-28,S-28]]){
-    g.fillStyle='rgba(0,0,0,.2)'; g.beginPath(); g.arc(p[0]+3,p[1]+3,12,0,TAU); g.fill();
-    g.fillStyle='#4f7a3a'; g.beginPath(); g.arc(p[0],p[1],12,0,TAU); g.fill();
-    g.fillStyle='#6e9a52'; g.beginPath(); g.arc(p[0]-3,p[1]-3,7,0,TAU); g.fill(); }
-  // benches
-  g.fillStyle='#7a5a35';
-  g.fillRect(S/2-30,26,22,6); g.fillRect(S/2+8,S-32,22,6);
-  // statue: shadow, pedestal, bronze figure
-  g.fillStyle='rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(S/2+8,S/2+8,20,10,0,0,TAU); g.fill();
-  g.fillStyle='#b0b4ba'; g.beginPath(); g.arc(S/2,S/2,17,0,TAU); g.fill();
-  g.strokeStyle='#7c8086'; g.lineWidth=2; g.stroke();
-  g.fillStyle='#8f9298'; g.beginPath(); g.arc(S/2,S/2,11,0,TAU); g.fill();
-  g.fillStyle='#6f7a58'; g.beginPath(); g.arc(S/2,S/2-2,6,0,TAU); g.fill(); // bronze
-  g.fillStyle='#87936b'; g.beginPath(); g.arc(S/2-2,S/2-4,3,0,TAU); g.fill();
-});}
 function mkGarden(){ return mkTile(g=>{
   tileBase(g);
   // lawn with mow stripes
@@ -781,8 +758,6 @@ function mkGas(){ return mkTile(g=>{
   const fg2=g.createLinearGradient(0,70,0,86); fg2.addColorStop(0,'#a81f16'); fg2.addColorStop(1,'#6e0f09');
   g.fillStyle=fg2; g.fillRect(18,70,S-36,16);
   g.fillStyle='#fff'; g.fillRect(18,70,S-36,3.5);
-  g.fillStyle='#ffd9d4'; g.font='900 9px "Arial Black", Impact, sans-serif';
-  g.fillText('GASOLINA',S/2,82.5);
   // canopy posts
   g.fillStyle='#c9cdd2'; g.fillRect(30,66,7,10); g.fillRect(S-37,66,7,10);
   // pumps
@@ -989,6 +964,44 @@ function mkStadium(name,c1,c2,txt){ return mkTile(g=>{
   label(g,txt,S-14);
 });}
 const LM_BUILDERS={
+ rossio(){ return mkTile(g=>{
+  tileBase(g);
+  // calçada portuguesa em ondas preto e branco (o "mar largo" do Rossio)
+  g.fillStyle='#f0ece0'; rr(g,10,10,S-20,S-20,8); g.fill();
+  g.save(); rr(g,10,10,S-20,S-20,8); g.clip();
+  g.strokeStyle='#22201e'; g.lineWidth=5.5;
+  for(let yy=4; yy<S+6; yy+=13){
+    g.beginPath();
+    for(let xx=4; xx<=S-4; xx+=6){ const y=yy+Math.sin(xx*0.135)*6.5; xx===4?g.moveTo(xx,y):g.lineTo(xx,y); }
+    g.stroke();
+  }
+  g.restore();
+  // canteiros verdes nos cantos
+  for(const p of [[26,26],[S-26,26],[26,S-26],[S-26,S-26]]){
+    g.fillStyle='rgba(0,0,0,.2)'; g.beginPath(); g.arc(p[0]+2,p[1]+2,13,0,TAU); g.fill();
+    g.fillStyle='#6e9a52'; g.beginPath(); g.arc(p[0],p[1],13,0,TAU); g.fill();
+    g.fillStyle='#4f7a3a'; g.beginPath(); g.arc(p[0]-2,p[1]-2,8,0,TAU); g.fill(); }
+  // duas fontes barrocas (topo e base)
+  for(const fy of [S*0.27, S*0.73]){
+    g.fillStyle='rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(S/2+3,fy+3,16,15,0,0,TAU); g.fill();
+    g.fillStyle='#9bb3a2'; g.beginPath(); g.arc(S/2,fy,16,0,TAU); g.fill();
+    g.strokeStyle='#5f7a68'; g.lineWidth=2; g.stroke();
+    g.fillStyle='#6fb0d8'; g.beginPath(); g.arc(S/2,fy,10,0,TAU); g.fill();
+    g.fillStyle='#9bb3a2'; g.beginPath(); g.arc(S/2,fy,3.5,0,TAU); g.fill();
+    g.strokeStyle='rgba(255,255,255,.6)'; g.lineWidth=1.4; g.beginPath(); g.arc(S/2-3,fy-2,6,3.3,5.6); g.stroke(); }
+  // coluna de D. Pedro IV ao centro
+  g.fillStyle='rgba(0,0,0,.32)'; g.beginPath(); g.ellipse(S/2+20,S/2+10,28,10,0.06,0,TAU); g.fill();
+  g.fillStyle='#b8b29e'; rr(g,S/2-14,S/2-6,28,17,3); g.fill();       // pedestal
+  g.strokeStyle='#84806e'; g.lineWidth=1.5; g.stroke();
+  const rcg=g.createLinearGradient(S/2-6,0,S/2+6,0);
+  rcg.addColorStop(0,'#d6d2c2'); rcg.addColorStop(0.5,'#f2efe4'); rcg.addColorStop(1,'#b4b09e');
+  g.fillStyle=rcg; g.fillRect(S/2-6,S/2-62,12,56);                   // fuste
+  g.strokeStyle='rgba(0,0,0,.2)'; g.lineWidth=1; g.strokeRect(S/2-6,S/2-62,12,56);
+  g.fillStyle='#c9c4b2'; g.fillRect(S/2-9,S/2-69,18,7);              // capitel
+  g.fillStyle='#7d9464'; g.fillRect(S/2-2,S/2-84,4,15);              // estátua bronze
+  g.beginPath(); g.arc(S/2,S/2-86,3.2,0,TAU); g.fill();
+  label(g,'Rossio',S-14);
+ });},
  pombal(){ return mkTile(g=>{
   tileBase(g);
   // ring road
@@ -1275,7 +1288,6 @@ function buildSprites(){
   SPR.portraitCry=mkCanvas(220,300,g=>paintPortraitR(g,'cry'));
   SPR.flag=mkCanvas(180,120,g=>paintLisbonFlag(g,180,120));
   TILE.bld=[0,1,2,3,4,5,6,7].map(mkBuilding);
-  TILE.square=mkSquare();
   TILE.garden=mkGarden();
   TILE.gas=mkGas();
   TILE.gira=mkGira(false);
@@ -1290,10 +1302,25 @@ buildSprites();
 
 // ================= WORLD GEN =================
 let cells, plots, stations, lastRowGen, worldRng;
-let plotsPlaced=0, landmarkIdx=0, rowsSincePlot=999, rowsSinceStation=999;
+let plotsPlaced=0, rowsSinceGas=999, rowsSinceGira=999;
+let plotRows=new Set(), landmarkAt=new Map();
+const PLOT_SPACING=4, FIRST_PLOT_ROW=5;   // terrenos bem afastados
+function planWorld(){
+  plotRows=new Set(); landmarkAt=new Map();
+  for(let i=0;i<TOTAL_PLOTS;i++) plotRows.add(FIRST_PLOT_ROW+i*PLOT_SPACING);
+  const lastPlotRow=FIRST_PLOT_ROW+(TOTAL_PLOTS-1)*PLOT_SPACING;
+  // todos os landmarks, distribuídos uniformemente (evitando as filas de terreno)
+  for(let i=0;i<LANDMARKS.length;i++){
+    let r=3+Math.round(i*(lastPlotRow-4)/(LANDMARKS.length-1));
+    while(plotRows.has(r)||landmarkAt.has(r)) r++;
+    landmarkAt.set(r, LANDMARKS[i]);
+  }
+}
 function genReset(){
   cells = new Map(); plots = []; stations = [];
   lastRowGen = -1; worldRng = mulberry32(1234567);
+  plotsPlaced=0; rowsSinceGas=999; rowsSinceGira=999;
+  planWorld();
   ensureRows(40);
 }
 function ensureRows(uptoRow){
@@ -1302,47 +1329,44 @@ function ensureRows(uptoRow){
 function genRow(row){
   if(row<2) return;
   const R = mulberry32(99991 + row*7);
-  rowsSincePlot++; rowsSinceStation++;
-  let plotThisRow = (plotsPlaced<TOTAL_PLOTS && rowsSincePlot>=2 && (row%3===0 || R()<0.4));
+  rowsSinceGas++; rowsSinceGira++;
+  const isPlotRow=plotRows.has(row);
+  const lmName=landmarkAt.get(row);
+  const plotCol = isPlotRow ? (R()<0.5?1:2) : -1;
+  let lmCol=-1;
+  if(lmName){
+    lmCol = (lmName==='belem') ? 0 : (1+(R()*3|0));   // Belém junto ao rio; restantes cols 1-3
+    if(lmCol===plotCol) lmCol=(lmCol%3)+1;
+  }
+  let gasDone=false, giraDone=false;
   for(let c=0;c<COLS;c++){
     const key=row+','+c;
     const rc=cellRect(row,c);
     const cx=rc.x+rc.w/2, cy=rc.y+rc.h/2;
     let feat=null;
-    const r=R();
-    if(plotThisRow && (c===1||c===2) && plotsPlaced<TOTAL_PLOTS && !hasPlotInRow(row)){
+    if(c===plotCol){
       feat={type:'plot', row, col:c, x:cx, y:cy, w:rc.w, h:rc.h, claimedBy:null, num:plotsPlaced+1};
-      plots.push(feat); plotsPlaced++; rowsSincePlot=0;
-    } else if(rowsSinceStation>=1 && r<0.10){
-      feat={type:'gas', x:cx, y:cy, w:rc.w, h:rc.h}; stations.push(feat); rowsSinceStation=0;
-    } else if(rowsSinceStation>=1 && r<0.20){
-      const broken = (R()<0.5);
-      feat={type:'gira', x:cx, y:cy, w:rc.w, h:rc.h, broken, used:false}; stations.push(feat); rowsSinceStation=0;
-    } else if(r<0.14 && row>3){
-      let name=LANDMARKS[landmarkIdx%LANDMARKS.length];
-      if(c===0 && R()<0.5) name='belem';            // Belém prefers riverside
-      else if(name==='belem' && c!==0) name='estrela';
-      feat={type:'landmark', name, x:cx, y:cy, w:rc.w, h:rc.h};
-      landmarkIdx++;
-    } else if(r<0.24){
-      feat={type:'square', x:cx, y:cy, w:rc.w, h:rc.h};
-    } else if(r<0.34){
-      feat={type:'garden', x:cx, y:cy, w:rc.w, h:rc.h};
+      plots.push(feat); plotsPlaced++;
+    } else if(lmName && c===lmCol){
+      feat={type:'landmark', name:lmName, x:cx, y:cy, w:rc.w, h:rc.h};
     } else {
-      feat={type:'building', x:cx, y:cy, w:rc.w, h:rc.h, seed:(R()*1000|0)};
+      const r=R();
+      if(!gasDone && rowsSinceGas>=4 && r<0.09){
+        feat={type:'gas', x:cx, y:cy, w:rc.w, h:rc.h}; stations.push(feat); rowsSinceGas=0; gasDone=true;
+      } else if(!giraDone && rowsSinceGira>=2 && r<0.16){
+        const broken=(R()<0.5);
+        feat={type:'gira', x:cx, y:cy, w:rc.w, h:rc.h, broken, used:false}; stations.push(feat); rowsSinceGira=0; giraDone=true;
+      } else if(r<0.32){
+        feat={type:'garden', x:cx, y:cy, w:rc.w, h:rc.h};
+      } else {
+        feat={type:'building', x:cx, y:cy, w:rc.w, h:rc.h, seed:(R()*1000|0)};
+      }
     }
     cells.set(key, feat);
   }
-  if(row>=34 && plotsPlaced<TOTAL_PLOTS){
-    const c=1, key=row+','+c, rc=cellRect(row,c);
-    if(!hasPlotInRow(row)){
-      const feat={type:'plot',row,col:c,x:rc.x+rc.w/2,y:rc.y+rc.h/2,w:rc.w,h:rc.h,claimedBy:null,num:plotsPlaced+1};
-      plots.push(feat); plotsPlaced++; cells.set(key,feat);
-    }
-  }
 }
-function hasPlotInRow(row){ return plots.some(p=>p.row===row); }
-function isSolid(feat){ return feat && (feat.type==='building' || (feat.type==='landmark' && feat.name!=='pombal')); }
+const OPEN_LM={pombal:1,rossio:1};   // praças atravessáveis
+function isSolid(feat){ return feat && (feat.type==='building' || (feat.type==='landmark' && !OPEN_LM[feat.name])); }
 
 // ================= ENTITIES =================
 let player, moedas, lisboetas, playerSide, camY, camX=0;
@@ -1355,7 +1379,6 @@ function makeLisboetas(isPlayer){
 }
 function startGame(side){
   playerSide = side;
-  plotsPlaced=0; landmarkIdx=0; rowsSincePlot=999; rowsSinceStation=999;
   genReset();
   moedas = makeMoedas(side==='moedas');
   lisboetas = makeLisboetas(side==='lisboetas');
@@ -1364,7 +1387,7 @@ function startGame(side){
   plotsSaved=0; plotsSold=0; plotsDone=0;
   moedasUnicorn=false; winner=null;
   particles.length=0;
-  aiIdle=0; countdownT=3.6;   // 3-2-1-JÁ! antes de começar
+  aiIdle=0; countdownT=5.6;   // 5-4-3-2-1-Partida! antes de começar
   initAudio();                // arranca a música (gesto do utilizador = clique no menu)
   state='countdown';
 }
@@ -1466,6 +1489,9 @@ let pausePrev='play', aiIdle=0, countdownT=0;
 let audio=null, musicGain=null, musicOn=true, musicOK=false, musicNextT=0, musicStep=0;
 const A_MEL =[69,72,76,72, 74,77,74,72, 71,74,79,74, 72,69,67,69];
 const A_BASS=[45, 0,45, 0, 50, 0,50, 0, 43, 0,43, 0, 45, 0,52, 0];
+// tema "estrela" frenético (Moedas no unicórnio): corridas rápidas + baixo aos saltos
+const S_MEL =[76,79,83,88, 86,83,79,76, 78,81,85,90, 88,85,81,78];
+const S_BASS=[40,52,40,52, 45,57,45,57, 41,53,41,53, 43,55,43,55];
 function nFreq(n){ return n? 440*Math.pow(2,(n-69)/12) : 0; }
 function initAudio(){
   if(audio){ if(audio.state==='suspended') audio.resume(); return; }
@@ -1484,12 +1510,20 @@ function aNote(freq,t,dur,type,vol){
 }
 function updateMusic(){
   if(!musicOK||audio.state==='suspended') return;
-  const step=0.16;
+  const fren = moedasUnicorn && state!=='menu';   // Moedas no unicórnio → tema frenético
+  const step = fren? 0.086 : 0.16;
   while(musicNextT < audio.currentTime+0.2){
-    const m=A_MEL[musicStep%A_MEL.length], b=A_BASS[musicStep%A_BASS.length];
-    aNote(nFreq(m),musicNextT,step*0.9,'square',0.14);
-    aNote(nFreq(b),musicNextT,step*1.7,'triangle',0.16);
-    if(musicStep%4===2) aNote(nFreq(m?m+12:0),musicNextT,step*0.5,'square',0.05);
+    if(fren){
+      const m=S_MEL[musicStep%S_MEL.length], b=S_BASS[musicStep%S_BASS.length];
+      aNote(nFreq(m),musicNextT,step*0.85,'square',0.15);
+      aNote(nFreq(b),musicNextT,step*1.1,'square',0.14);     // baixo em contínuo, sem pausas
+      aNote(nFreq(m+12),musicNextT,step*0.4,'square',0.05);  // brilho uma oitava acima
+    } else {
+      const m=A_MEL[musicStep%A_MEL.length], b=A_BASS[musicStep%A_BASS.length];
+      aNote(nFreq(m),musicNextT,step*0.9,'square',0.14);
+      aNote(nFreq(b),musicNextT,step*1.7,'triangle',0.16);
+      if(musicStep%4===2) aNote(nFreq(m?m+12:0),musicNextT,step*0.5,'square',0.05);
+    }
     musicNextT+=step; musicStep++;
   }
 }
@@ -1504,27 +1538,29 @@ function drawScene(){
 }
 function drawCountdown(){
   drawScene();
-  ctx.fillStyle='rgba(6,8,16,.4)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(6,8,16,.45)'; ctx.fillRect(0,0,W,H);
   const n=Math.ceil(countdownT-0.6);
   ctx.textAlign='center';
   if(n>0){
     const frac=1-((countdownT-0.6)-(n-1)); // 0→1 within the second
     const s=Math.min(160,W*0.22)*(0.7+0.5*Math.sin(Math.min(frac,1)*Math.PI));
-    ctx.save(); ctx.translate(W/2,H/2); ctx.globalAlpha=clamp(1.2-frac,0,1)+0.2;
+    ctx.save(); ctx.translate(W/2,H*0.56); ctx.globalAlpha=clamp(1.2-frac,0,1)+0.2;
     ctx.font='900 '+s+'px "Arial Black", Impact, sans-serif';
     ctx.lineWidth=s*0.09; ctx.strokeStyle='#0c0e1a'; ctx.strokeText(n,0,s*0.35);
     const g=ctx.createLinearGradient(0,-s*0.6,0,s*0.4);
     for(const st of GOLD_CHROME) g.addColorStop(st[0],st[1]);
     ctx.fillStyle=g; ctx.fillText(n,0,s*0.35); ctx.restore();
   } else {
-    const s=Math.min(150,W*0.2)*(1+Math.sin(clamp(-countdownT/0.6,0,1)*Math.PI)*0.15);
-    ctx.save(); ctx.translate(W/2,H/2);
+    const s=Math.min(118,W*0.15)*(1+Math.sin(clamp(-countdownT/0.6,0,1)*Math.PI)*0.15);
+    ctx.save(); ctx.translate(W/2,H*0.56);
     ctx.font='900 '+s+'px "Arial Black", Impact, sans-serif';
-    ctx.lineWidth=s*0.09; ctx.strokeStyle='#0c0e1a'; ctx.strokeText('JÁ!',0,s*0.35);
+    ctx.lineWidth=s*0.09; ctx.strokeStyle='#0c0e1a'; ctx.strokeText('Partida!',0,s*0.32);
     const g=ctx.createLinearGradient(0,-s*0.6,0,s*0.4);
     for(const st of GREEN_CHROME) g.addColorStop(st[0],st[1]);
-    ctx.fillStyle=g; ctx.fillText('JÁ!',0,s*0.35); ctx.restore();
+    ctx.fillStyle=g; ctx.fillText('Partida!',0,s*0.32); ctx.restore();
   }
+  // banner de contexto durante a contagem
+  banner('Corre para chegar primeiro aos 10 terrenos que o Carlos Moedas quer vender em Lisboa! A Câmara Municipal quer vender a investidores, enquanto que os Lisboetas querem Habitação a Preços Acessíveis!', H*0.17, '#ffd23f', Math.min(17,W*0.019));
 }
 let pauseBtns=[];
 function drawPause(){
@@ -1739,7 +1775,6 @@ function drawFeature(f){
   let tile=null;
   switch(f.type){
     case 'building': tile=TILE.bld[f.seed%TILE.bld.length]; break;
-    case 'square': tile=TILE.square; break;
     case 'garden': tile=TILE.garden; break;
     case 'gas': tile=TILE.gas; break;
     case 'gira': tile=f.broken?TILE.giraBad:TILE.gira; break;
@@ -2131,6 +2166,16 @@ function drawMenu(){
   ctx.restore();
   // buttons + difficulty meters
   menuBtns=[];
+  // botão de silenciar música (topo centro)
+  {
+    const mbw=Math.min(160,W*0.22), b={x:W/2-mbw/2,y:8,w:mbw,h:30,act:'music'};
+    menuBtns.push(b);
+    const hover=mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h;
+    ctx.fillStyle='rgba(10,13,24,.82)'; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.fill();
+    ctx.strokeStyle=hover?'#ffd23f':'rgba(240,220,160,.6)'; ctx.lineWidth=2; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.stroke();
+    ctx.fillStyle='#f4ecd7'; ctx.font='900 12px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+    ctx.fillText(musicOn?'🔊 MÚSICA: ON':'🔇 MÚSICA: OFF', b.x+b.w/2, b.y+b.h/2+4.5);
+  }
   const bw=Math.min(300,W*0.4), bh=64;
   const by=H*0.76;
   const lb={x:W*0.24-bw/2,y:by,w:bw,h:bh,side:'lisboetas'};
@@ -3012,7 +3057,7 @@ function endInfo(){
     return {text:'Bom, pelo menos conseguiste dar casa a '+(plotsSaved*10)+' famílias.',color:'#ffd23f'};
   } else {
     if(plotsSold===TOTAL_PLOTS) return {text:'Ahah! Travaste essa gentalha reles e garantiste Hotéis e Condomínios de Luxo para todos os investidores! Parabéns',color:'#ffd23f',fireworks:true,unicornPrance:true};
-    if(plotsSold===0) return {text:'Oh não! Não! não! não! não! não! Os meus empreendimentos de luxo foram todos por água abaixo!',color:'#e74c3c',tantrum:true};
+    if(plotsSold===0) return {text:'Ai que desgraça! Que desgraça! Os meus empreendimentos de luxo foram todos por água abaixo!',color:'#e74c3c',tantrum:true};
     return {text:'Oh não! Essa gentalha conseguiu travar '+plotsSaved+' dos empreendimentos de luxo dos meus investidores!',color:'#e77ec9',moedasCry:true};
   }
 }
@@ -3134,7 +3179,11 @@ function frame(now){
   if(state==='menu'){
     drawMenu();
     if(mouse.clicked){
-      for(const b of menuBtns){ if(mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h){ startGame(b.side); break; } }
+      for(const b of menuBtns){ if(mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h){
+        if(b.act==='music'){ initAudio(); setMusic(!musicOn); }
+        else if(b.side){ startGame(b.side); }
+        break;
+      } }
     }
   } else if(state==='countdown'){
     countdownT-=dt;
@@ -3163,8 +3212,11 @@ function frame(now){
       const ended=cut.type;
       if(ended==='gasTruck'){ moedas.gas=1; }
       cut=null; afterCut();
-      // depois de reclamar um terreno + animação, computador parado 1s para apanhar
-      if(state==='play' && (ended==='moedasWin'||ended==='lisboetasWin'||ended==='unicorn')) aiIdle=Math.max(aiIdle,1.0);
+      // depois de construir, congelar o computador 1s só se foi ELE a construir (não o jogador)
+      if(state==='play' && (ended==='moedasWin'||ended==='lisboetasWin'||ended==='unicorn')){
+        const winnerSide = (ended==='moedasWin') ? 'moedas' : 'lisboetas';   // unicórnio segue um terreno dos Lisboetas
+        if(winnerSide!==playerSide) aiIdle=Math.max(aiIdle,1.0);
+      }
     }
     if(cut && cut.type==='end' && (mouse.clicked || keys[' '])){ keys[' ']=false; particles.length=0; resetToMenu(); }
   }
@@ -3182,6 +3234,9 @@ window.__dbg={
   state:()=>state,
   cut:(ty,dur,data)=>{ playCut(ty,dur||3,data); },
   tile:(name,i)=>{ const t2=TILE[name]; return (t2&&i!=null)? t2[i] : t2; },
+  world:()=>({ planPlots:[...plotRows].sort((a,b)=>a-b), landmarks:[...landmarkAt.entries()],
+    genPlots:plots.map(p=>p.row), gas:stations.filter(s=>s.type==='gas').length,
+    gira:stations.filter(s=>s.type==='gira').length, lastRow:lastRowGen }),
   sig:(n)=>{ n=n||24; let out=[]; for(let r=0;r<n;r++){ let row=[]; for(let c=0;c<COLS;c++){ const f=cells.get(r+','+c); row.push(f?(f.type[0]+(f.name?f.name[0]:'')+(f.seed!=null?f.seed:'')+(f.broken?'B':'')+(f.claimedBy?'@'+f.claimedBy[0]:'')):'.'); } out.push(row.join('')); } return out.join('/'); },
   setEnd:(side,saved,sold)=>{ playerSide=side; plotsSaved=saved; plotsSold=sold; moedasUnicorn=(sold>=5); if(!moedas)moedas=makeMoedas(false); moedas.unicorn=moedasUnicorn; playCut('end',999); },
   pos:()=>({p:[player.x|0,player.y|0], m:[moedas.x|0,moedas.y|0], l:[lisboetas.x|0,lisboetas.y|0], idle:aiIdle, music:musicOn})
