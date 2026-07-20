@@ -14,7 +14,7 @@ Corre para chegar primeiro aos 10 terrenos que o **Carlos Moedas** quer vender e
 
 - **Setas** — mover
 - **Espaço** — avançar cutscenes
-- **ESC** — voltar ao menu
+- **ESC** — menu de pausa (continuar, música on/off, sair para o menu)
 
 ## ✨ Características
 
