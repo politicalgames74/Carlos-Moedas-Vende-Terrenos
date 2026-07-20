@@ -124,8 +124,16 @@ function label(g,txt,y){
 const EXT=40; // padding inferior dos tiles para fachadas
 function mkTile(fn){ return mkCanvas(S,S+EXT,fn); }
 // banda de fachada com janelas, porta e oclusão ambiente
-function wallBand(g,x,w,yTop,h,col){
+function wallBand(g,x,w,yTop,h,col,azulejo){
   g.fillStyle=col; g.fillRect(x,yTop,w,h);
+  if(azulejo){
+    // fachada de azulejos: grelha de mini-quadrados em dois azuis sobre junta branca
+    g.fillStyle='#eef2f6'; g.fillRect(x,yTop,w,h);
+    for(let xx=x;xx<x+w-3;xx+=6){ for(let yy=yTop;yy<yTop+h-3;yy+=6){
+      g.fillStyle= (((xx+yy)/6)|0)%2? '#3f6fae':'#7fa8d4';
+      g.fillRect(xx+1,yy+1,4.2,4.2);
+    } }
+  }
   const sh=g.createLinearGradient(0,yTop,0,yTop+h);
   sh.addColorStop(0,'rgba(0,0,0,.05)'); sh.addColorStop(1,'rgba(0,0,0,.42)');
   g.fillStyle=sh; g.fillRect(x,yTop,w,h);
@@ -336,9 +344,9 @@ function paintPortraitR(g,mood){
   g.beginPath(); g.moveTo(103,140); g.lineTo(104,160); g.stroke();
   // ---- cabeça ----
   const skin=g.createRadialGradient(100,80,18,110,100,74);
-  skin.addColorStop(0,'#f6d5ad'); skin.addColorStop(0.65,'#eec19a'); skin.addColorStop(1,'#d29a6e');
+  skin.addColorStop(0,'#f3d3b0'); skin.addColorStop(0.65,'#e9c1a0'); skin.addColorStop(1,'#cf9c74');
   g.beginPath(); g.ellipse(110,96,42,50,0,0,TAU); g.fillStyle=skin; g.fill();
-  g.lineWidth=2; g.strokeStyle='rgba(150,100,60,.55)'; g.stroke();
+  g.lineWidth=1.5; g.strokeStyle='rgba(140,95,58,.4)'; g.stroke();
   g.save(); g.beginPath(); g.ellipse(110,96,42,50,0,0,TAU); g.clip();
   g.fillStyle='rgba(150,90,50,.16)'; g.beginPath(); g.ellipse(140,100,20,44,0.15,0,TAU); g.fill();
   g.fillStyle='rgba(150,90,50,.10)'; g.beginPath(); g.ellipse(78,102,14,38,-0.1,0,TAU); g.fill();
@@ -346,6 +354,19 @@ function paintPortraitR(g,mood){
   g.fillStyle='rgba(215,120,90,.13)';
   g.beginPath(); g.ellipse(84,112,10,7,0.2,0,TAU); g.fill();
   g.beginPath(); g.ellipse(136,112,10,7,-0.2,0,TAU); g.fill();
+  // modelação do maxilar e queixo (mais realista)
+  g.fillStyle='rgba(140,85,50,.12)';
+  g.beginPath(); g.ellipse(110,138,26,12,0,0,TAU); g.fill();
+  g.strokeStyle='rgba(140,85,50,.25)'; g.lineWidth=2;
+  g.beginPath(); g.arc(110,118,30,0.55,2.59); g.stroke();
+  // covinha do queixo + filtro labial
+  g.strokeStyle='rgba(140,85,50,.3)'; g.lineWidth=1.5;
+  g.beginPath(); g.moveTo(110,117); g.lineTo(110,121); g.stroke();
+  g.beginPath(); g.arc(110,150,5,3.5,5.9); g.stroke();
+  // têmporas encovadas
+  g.fillStyle='rgba(150,90,50,.08)';
+  g.beginPath(); g.ellipse(76,84,8,14,0.2,0,TAU); g.fill();
+  g.beginPath(); g.ellipse(144,84,8,14,-0.2,0,TAU); g.fill();
   g.restore();
   // orelhas
   g.fillStyle='#eabf95'; g.strokeStyle='rgba(150,100,60,.55)'; g.lineWidth=1.8;
@@ -485,15 +506,16 @@ function paintPortraitR(g,mood){
     g.beginPath(); g.moveTo(69+RND()*4,104+i*1.4); g.lineTo(70+RND()*4,107+i*1.4); g.stroke();
     g.beginPath(); g.moveTo(147+RND()*4,104+i*1.4); g.lineTo(148+RND()*4,107+i*1.4); g.stroke();
   }
-  // ---- óculos redondos ----
+  // ---- óculos redondos (ponte a ligar no TOPO dos aros, como na foto) ----
   g.lineWidth=5.5; g.strokeStyle='#1c1a18';
   g.beginPath(); g.arc(89,97,20,0,TAU); g.stroke();
   g.beginPath(); g.arc(131,97,20,0,TAU); g.stroke();
   g.lineWidth=1.2; g.strokeStyle='rgba(255,255,255,.25)';
   g.beginPath(); g.arc(89,97,17.4,0,TAU); g.stroke();
   g.beginPath(); g.arc(131,97,17.4,0,TAU); g.stroke();
-  g.lineWidth=4; g.strokeStyle='#1c1a18';
-  g.beginPath(); g.moveTo(107,92); g.quadraticCurveTo(110,88.5,113,92); g.stroke();
+  g.lineWidth=4.5; g.strokeStyle='#1c1a18';
+  g.beginPath(); g.moveTo(96,79.5); g.quadraticCurveTo(110,73,124,79.5); g.stroke();
+  g.lineWidth=4;
   g.beginPath(); g.moveTo(69,95); g.quadraticCurveTo(66,95,64.5,97.5); g.stroke();
   g.beginPath(); g.moveTo(151,95); g.quadraticCurveTo(154,95,155.5,97.5); g.stroke();
   g.save();
@@ -608,7 +630,8 @@ function mkUniTop(){ return mkCanvas(46,66,g=>{ g.translate(23,33);
 // ================= CITY TILES =================
 const ROOFS=[['#c96b4a','#96432c'],['#b85c3e','#8a3e26'],['#d1785a','#a04f36'],['#a85234','#7c3a22'],
              ['#c26246','#8f4630'],['#bd6a52','#8c4a36'],['#b0563b','#823c27'],['#ca7350','#985238']];
-const FACADES=['#e6d7b8','#dcc9a4','#e2cfc0','#d8c0a8','#e8dcc8','#d4c49c','#c8b894','#e0d0b0'];
+// pastéis típicos de Lisboa: amarelo, rosa-velho, azul-claro, verde-água, ocre…
+const FACADES=['#f5d7a0','#f0b8a8','#cfe0e8','#f7e8b0','#e8b8c4','#d5e8c8','#f2c898','#efe0cc'];
 function mkBuilding(v){ return mkTile(g=>{
   tileBase(g);
   const R=mulberry32(v*77+3);
@@ -623,41 +646,63 @@ function mkBuilding(v){ return mkTile(g=>{
   g.strokeStyle='rgba(0,0,0,.3)'; g.lineWidth=2; g.stroke();
   // roof ridge
   g.strokeStyle='rgba(255,235,210,.35)'; g.lineWidth=2; rr(g,33,33,S-66,S-66,7); g.stroke();
-  // tile lines (perpendicular ticks)
-  g.strokeStyle='rgba(90,40,25,.35)'; g.lineWidth=1.5;
-  for(let i=18;i<S-18;i+=9){
-    g.beginPath(); g.moveTo(i,13); g.lineTo(i,52); g.stroke();
-    g.beginPath(); g.moveTo(i,S-52); g.lineTo(i,S-13); g.stroke();
-    g.beginPath(); g.moveTo(13,i); g.lineTo(52,i); g.stroke();
-    g.beginPath(); g.moveTo(S-52,i); g.lineTo(S-13,i); g.stroke();
-  }
+  // telha caneca: fiadas de arcos nas quatro águas
+  g.strokeStyle='rgba(90,40,25,.4)'; g.lineWidth=1.1;
+  for(let yy=18;yy<=48;yy+=7){ for(let xx=18;xx<S-16;xx+=8){        // água norte
+    g.beginPath(); g.arc(xx,yy,3.6,Math.PI,0); g.stroke(); } }
+  for(let yy=S-48;yy<=S-18;yy+=7){ for(let xx=18;xx<S-16;xx+=8){    // água sul
+    g.beginPath(); g.arc(xx,yy,3.6,0,Math.PI); g.stroke(); } }
+  for(let xx=18;xx<=48;xx+=7){ for(let yy=18;yy<S-16;yy+=8){        // água oeste
+    g.beginPath(); g.arc(xx,yy,3.6,Math.PI/2,-Math.PI/2); g.stroke(); } }
+  for(let xx=S-48;xx<=S-18;xx+=7){ for(let yy=18;yy<S-16;yy+=8){    // água este
+    g.beginPath(); g.arc(xx,yy,3.6,-Math.PI/2,Math.PI/2); g.stroke(); } }
+  // tacaniças (linhas diagonais dos cantos)
+  g.strokeStyle=dark; g.lineWidth=2;
+  g.beginPath(); g.moveTo(14,14); g.lineTo(54,54); g.moveTo(S-14,14); g.lineTo(S-54,54);
+  g.moveTo(14,S-14); g.lineTo(54,S-54); g.moveTo(S-14,S-14); g.lineTo(S-54,S-54); g.stroke();
   // sun-side highlight
   g.strokeStyle='rgba(255,255,255,.25)'; g.lineWidth=4;
   g.beginPath(); g.moveTo(16,S-18); g.lineTo(16,16); g.lineTo(S-18,16); g.stroke();
-  // chimneys
-  g.fillStyle='#e8e0cc';
-  for(let i=0;i<4;i++){ const cxp=24+R()*(S-60), cyp=R()<0.5? 20+R()*22 : S-42+R()*20;
-    g.fillRect(cxp,cyp,10,10); g.fillStyle='#8a8274'; g.fillRect(cxp+2,cyp+2,6,6); g.fillStyle='#e8e0cc'; }
-  // courtyard details per variant
-  if(v%3===0){ // trees
+  // chaminés lisboetas (corpo claro, capelo escuro)
+  for(let i=0;i<4;i++){ const cxp=24+R()*(S-60), cyp=R()<0.5? 20+R()*22 : S-44+R()*20;
+    g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(cxp+2,cyp+2,11,11);
+    g.fillStyle='#efe6d2'; g.fillRect(cxp,cyp,11,11);
+    g.strokeStyle='#a89a80'; g.lineWidth=1; g.strokeRect(cxp,cyp,11,11);
+    g.fillStyle='#8a8274'; g.fillRect(cxp+2.5,cyp+2.5,6,6); }
+  // detalhes por variante
+  if(v%4===0){ // pátio com árvores + depósito de água no telhado
     for(let i=0;i<3;i++){ const tx=64+R()*(S-128), ty=64+R()*(S-128);
       g.fillStyle='rgba(0,0,0,.2)'; g.beginPath(); g.arc(tx+3,ty+3,10,0,TAU); g.fill();
       g.fillStyle='#4f7a3a'; g.beginPath(); g.arc(tx,ty,10,0,TAU); g.fill();
       g.fillStyle='#6e9a52'; g.beginPath(); g.arc(tx-3,ty-3,6,0,TAU); g.fill(); }
-  } else if(v%3===1){ // laundry lines
+    g.fillStyle='rgba(0,0,0,.25)'; g.beginPath(); g.arc(S-32,S-32,9,0,TAU); g.fill();
+    g.fillStyle='#b8bec6'; g.beginPath(); g.arc(S-34,S-34,9,0,TAU); g.fill();
+    g.strokeStyle='#70767e'; g.lineWidth=1.5; g.stroke();
+  } else if(v%4===1){ // estendais no pátio (fachada de azulejos)
     g.strokeStyle='#777'; g.lineWidth=1;
     g.beginPath(); g.moveTo(60,70); g.lineTo(S-60,84); g.stroke();
     g.beginPath(); g.moveTo(60,104); g.lineTo(S-60,116); g.stroke();
     const cols=['#e05a5a','#5a8fe0','#e0d05a','#7ae08a','#e08ae0'];
     for(let i=0;i<5;i++){ g.fillStyle=cols[i]; g.fillRect(66+i*13,71+i*1.4,8,10); }
     for(let i=0;i<5;i++){ g.fillStyle=cols[(i+2)%5]; g.fillRect(70+i*13,105+i*1.2,8,9); }
-  } else { // AC units + skylights
+  } else if(v%4===2){ // ACs, claraboias e antena parabólica
     g.fillStyle='#c9cdd2';
     for(let i=0;i<4;i++){ g.fillRect(62+R()*(S-134),62+R()*(S-134),11,8); }
     g.fillStyle='rgba(160,210,240,.8)'; g.fillRect(70,S-84,18,12); g.fillRect(S-92,68,18,12);
+    g.fillStyle='#e6e9ec'; g.beginPath(); g.ellipse(34,S-34,7,5,0.6,0,TAU); g.fill();
+    g.strokeStyle='#8a9098'; g.lineWidth=1; g.stroke();
+    g.fillStyle='#5a6068'; g.beginPath(); g.arc(36,S-36,1.6,0,TAU); g.fill();
+  } else { // terraço no telhado com pérgula e vasos
+    g.fillStyle='#c8a878'; rr(g,S-86,20,64,36,4); g.fill();
+    g.strokeStyle='#9a7a4c'; g.lineWidth=1.5; rr(g,S-86,20,64,36,4); g.stroke();
+    g.strokeStyle='rgba(122,90,53,.7)';
+    for(let i=0;i<5;i++){ g.beginPath(); g.moveTo(S-82+i*14,22); g.lineTo(S-82+i*14,54); g.stroke(); }
+    g.fillStyle='#4f7a3a';
+    g.beginPath(); g.arc(S-78,50,5,0,TAU); g.fill();
+    g.beginPath(); g.arc(S-30,26,5,0,TAU); g.fill();
   }
-  // fachada sul (ângulo ligeiro)
-  wallBand(g,16,S-32,S-15,30,FACADES[v%FACADES.length]);
+  // fachada sul: pastel de Lisboa; algumas (v par múltiplo de 4+1) com azulejos
+  wallBand(g,16,S-32,S-15,30,FACADES[v%FACADES.length], v%4===1);
 });}
 function mkSquare(){ return mkTile(g=>{
   tileBase(g);
@@ -840,6 +885,46 @@ function mkPlotLux(){ return mkTile(g=>{
   g.fillStyle='#ffd9a0'; g.fillRect(94,148,16,18);
   g.strokeStyle='#c9a227'; g.lineWidth=1.5; g.strokeRect(94,148,16,18);
   g.fillStyle='#c9a227'; g.font='bold 12px Trebuchet MS'; g.fillText('★★★★★',102,178);
+});}
+function mkPlotCondo(){ return mkTile(g=>{
+  tileBase(g);
+  rr(g,10,10,S-20,S-20,8); g.fillStyle='#e6ddc8'; g.fill();  // plaza de pedra clara
+  g.strokeStyle='rgba(150,140,110,.35)'; g.lineWidth=1;
+  for(let i=26;i<S-10;i+=16){ g.beginPath(); g.moveTo(i,12); g.lineTo(i,S-12); g.stroke(); }
+  // jardins privados nos cantos
+  for(const p of [[18,18],[S-60,18]]){
+    g.fillStyle='#7f9c5c'; rr(g,p[0],p[1],42,36,8); g.fill();
+    g.fillStyle='rgba(0,0,0,.2)'; g.beginPath(); g.arc(p[0]+24,p[1]+20,9,0,TAU); g.fill();
+    g.fillStyle='#4f7a3a'; g.beginPath(); g.arc(p[0]+21,p[1]+17,9,0,TAU); g.fill();
+    g.fillStyle='#6e9a52'; g.beginPath(); g.arc(p[0]+18,p[1]+14,5,0,TAU); g.fill();
+  }
+  // edifício creme com pátio-piscina central
+  extrudeSil(g,26,'#d8c8a0',gg=>{ rr(gg,38,60,114,96,10); });
+  tileShadow(g,38,60,114,96,10);
+  const cb2=g.createLinearGradient(38,60,152,156); cb2.addColorStop(0,'#f6ecd4'); cb2.addColorStop(1,'#e2d2ac');
+  rr(g,38,60,114,96,10); g.fillStyle=cb2; g.fill();
+  g.strokeStyle='#c9a227'; g.lineWidth=3; rr(g,38,60,114,96,10); g.stroke();
+  // grelha de terraços no telhado
+  g.strokeStyle='rgba(201,162,39,.45)'; g.lineWidth=1;
+  for(let x=52;x<150;x+=14){ g.beginPath(); g.moveTo(x,62); g.lineTo(x,154); g.stroke(); }
+  for(let y=74;y<154;y+=14){ g.beginPath(); g.moveTo(40,y); g.lineTo(150,y); g.stroke(); }
+  // pátio central com piscina em rim + espreguiçadeiras
+  g.fillStyle='#e6ddc8'; rr(g,66,86,58,48,6); g.fill();
+  g.strokeStyle='#c9a227'; g.lineWidth=2; rr(g,66,86,58,48,6); g.stroke();
+  g.fillStyle='#5fc0d8'; rr(g,72,92,38,28,12); g.fill();
+  g.strokeStyle='#3a94ab'; g.lineWidth=2; rr(g,72,92,38,28,12); g.stroke();
+  g.strokeStyle='rgba(255,255,255,.6)'; g.lineWidth=1.2;
+  g.beginPath(); g.arc(84,102,7,3.4,5.6); g.stroke();
+  g.fillStyle='#fff'; g.fillRect(114,94,4,10); g.fillRect(114,110,4,10); // espreguiçadeiras
+  // varanda dourada na fachada sul (banda do wallBand com grades)
+  wallBand(g,42,106,S-36,24,'#f2e2bc');
+  g.strokeStyle='#c9a227'; g.lineWidth=1.4;
+  for(let x=46;x<146;x+=6){ g.beginPath(); g.moveTo(x,S-34); g.lineTo(x,S-22); g.stroke(); }
+  g.beginPath(); g.moveTo(44,S-34); g.lineTo(146,S-34); g.stroke();
+  // texto
+  g.fillStyle='#c9a227'; g.font='900 10px "Arial Black", Impact, sans-serif'; g.textAlign='center';
+  g.fillText('CONDOMÍNIO DE LUXO',95,50);
+  g.font='bold 12px Trebuchet MS'; g.fillText('€€€',95,174);
 });}
 function mkPlotHab(){ return mkTile(g=>{
   tileBase(g);
@@ -1196,6 +1281,7 @@ function buildSprites(){
   TILE.gira=mkGira(false);
   TILE.giraBad=mkGira(true);
   TILE.plotLux=mkPlotLux();
+  TILE.plotCondo=mkPlotCondo();
   TILE.plotHab=mkPlotHab();
   TILE.lm={};
   for(const n of LANDMARKS) TILE.lm[n]=LM_BUILDERS[n]();
@@ -1659,7 +1745,7 @@ function drawFeature(f){
     case 'gira': tile=f.broken?TILE.giraBad:TILE.gira; break;
     case 'landmark': tile=TILE.lm[f.name]; break;
     case 'plot':
-      if(f.claimedBy==='moedas') tile=TILE.plotLux;
+      if(f.claimedBy==='moedas') tile= f.buildType==='condo'? TILE.plotCondo : TILE.plotLux;
       else if(f.claimedBy==='lisboetas') tile=TILE.plotHab;
       else { drawPlotOpen(f,x,y); return; }
       break;
@@ -1710,12 +1796,13 @@ function faceOf(ent){
 }
 function drawMoedasEnt(m){
   const f=faceOf(m), t=performance.now()*0.001;
+  const tilt=-Math.sin(m.ang)*0.38;   // frame diagonal ao subir/descer
   if(m.unicorn){
     for(let i=0;i<5;i++){
       emit({x:m.x-Math.cos(m.ang)*(14+i*7)+rand(-3,3), y:m.y-Math.sin(m.ang)*(14+i*7)+rand(-3,3),
         vx:0,vy:0,life:0.45,g:0,r:4.5,col:`hsl(${(performance.now()*0.35+i*45)%360},90%,58%)`});
     }
-    ctx.save(); ctx.translate(sx(m.x), w2s(m.y)); ctx.scale(f*0.5,0.5);
+    ctx.save(); ctx.translate(sx(m.x), w2s(m.y)); ctx.scale(f*0.5,0.5); ctx.rotate(tilt);
     drawUniSide(0,0,1,t); ctx.restore();
   } else {
     // MUITO fumo do escape
@@ -1727,17 +1814,25 @@ function drawMoedasEnt(m){
     if(Math.random()<0.35)
       emit({x:m.x-f*30, y:m.y, vx:-f*rand(8,20), vy:rand(10,28),
         life:1.9, g:0, r:rand(9,15), col:'rgba(58,58,64,0.45)'});
-    ctx.save(); ctx.translate(sx(m.x), w2s(m.y)); ctx.scale(f*0.45,0.45);
+    ctx.save(); ctx.translate(sx(m.x), w2s(m.y)); ctx.scale(f*0.45,0.45); ctx.rotate(tilt);
     drawCarSide(0,0,1,false); ctx.restore();
   }
 }
+const BIKE_FRQ=[1.9,2.3,1.7,2.6,2.1], BIKE_PH=[0,1.7,3.1,4.4,0.9];
 function drawLisboetasEnt(l){
-  const f=faceOf(l);
+  const f=faceOf(l), t=performance.now()*0.001;
+  const tilt=-Math.sin(l.ang)*0.34;   // frame diagonal ao subir/descer
   const bx=sx(l.x), by=w2s(l.y);
   const offs=[[0,-13],[-26,-5],[26,-5],[-13,7],[13,7]];   // trás → frente
-  ctx.save(); ctx.translate(bx,by); ctx.scale(f,1);
+  ctx.save(); ctx.translate(bx,by); ctx.scale(f,1); ctx.rotate(tilt);
   for(let i=0;i<l.riders;i++){
-    drawBikeSide(offs[i][0], offs[i][1], 0.62, false, i);
+    // cada ciclista oscila com fase/frequência próprias — grupo orgânico
+    const ox=offs[i][0]+Math.sin(t*BIKE_FRQ[i]+BIKE_PH[i])*4.5;
+    const oy=offs[i][1]+Math.cos(t*BIKE_FRQ[i]*0.8+BIKE_PH[i]*1.3)*3;
+    const wob=Math.sin(t*BIKE_FRQ[i]*2.6+BIKE_PH[i])*0.06;
+    ctx.save(); ctx.translate(ox,oy); ctx.rotate(wob);
+    drawBikeSide(0,0,0.62,false,i);
+    ctx.restore();
   }
   ctx.restore();
 }
@@ -1982,10 +2077,17 @@ function drawMenu(){
   drawCarSide(0,0,1,false,t);
   ctx.restore();
   ctx.drawImage(SPR.portraitSmile, W*0.77-pw/2, H*0.73-ph, pw, ph);
-  // gold coin sparkle
-  for(let i=0;i<3;i++){ const a=t*1.5+i*2.1;
-    ctx.fillStyle='rgba(255,210,63,.85)';
-    ctx.beginPath(); ctx.arc(W*0.77+Math.cos(a)*pw*0.62, H*0.44+Math.sin(a*1.3)*H*0.09, 3.2,0,TAU); ctx.fill(); }
+  // sinais de € dourados a circular a cabeça
+  {
+    const hy=H*0.73-ph*0.82;
+    ctx.font='900 20px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+    for(let i=0;i<4;i++){ const a=t*1.4+i*1.57;
+      const ex=W*0.77+Math.cos(a)*pw*0.66, ey=hy+Math.sin(a*1.3)*H*0.07;
+      ctx.save(); ctx.translate(ex,ey); ctx.rotate(Math.sin(a*2)*0.22);
+      ctx.fillStyle='rgba(0,0,0,.4)'; ctx.fillText('€',2,2);
+      ctx.fillStyle='#ffd23f'; ctx.fillText('€',0,0);
+      ctx.restore(); }
+  }
   // name plates
   ctx.font='900 15px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
   ctx.fillStyle='rgba(10,13,24,.85)';
@@ -2063,9 +2165,9 @@ function drawMoedasHeadSide(x,y,s,mood){
   ctx.fillStyle='#b9bdc0';                                       // hair back
   ctx.beginPath(); ctx.arc(-1,-8,9,Math.PI*0.75,Math.PI*1.9); ctx.fill();
   ctx.beginPath(); ctx.arc(-1,-11,7,Math.PI,TAU); ctx.fill();
-  ctx.strokeStyle='#26221f'; ctx.lineWidth=1.6;                  // round glasses
+  ctx.strokeStyle='#26221f'; ctx.lineWidth=1.6;                  // óculos redondos (ponte no topo)
   ctx.beginPath(); ctx.arc(4,-7,3.6,0,TAU); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0.5,-7.5); ctx.lineTo(-4,-8.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(3,-10.3); ctx.quadraticCurveTo(-0.5,-11.4,-4,-10.4); ctx.stroke();
   if(mood==='cry'){ ctx.fillStyle='#7a2f28'; ctx.beginPath(); ctx.ellipse(6,-1,2.6,2,0,0,TAU); ctx.fill(); }
   else { ctx.strokeStyle='#8a5a3a'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.arc(5,-2.5,2.6,0.3,2.3); ctx.stroke(); }
   ctx.restore();
@@ -2995,7 +3097,8 @@ function checkPlots(ent, side){
       }
       p.claimedBy=side;
       plotsDone++;
-      if(side==='moedas'){ plotsSold++; playCut('moedasWin',2.6); }
+      if(side==='moedas'){ p.buildType = Math.random()<0.5? 'condo':'hotel';
+        plotsSold++; playCut('moedasWin',2.6,{condo:p.buildType==='condo'}); }
       else { plotsSaved++; playCut('lisboetasWin',2.8);
         if(plotsSaved===5 && !moedasUnicorn){ pendingUnicorn=true; } }
       pendingEndCheck=true;
@@ -3078,6 +3181,7 @@ window.__dbg={
   key:(k,v)=>{ keys[k]=v===undefined?true:v; },
   state:()=>state,
   cut:(ty,dur,data)=>{ playCut(ty,dur||3,data); },
+  tile:(name,i)=>{ const t2=TILE[name]; return (t2&&i!=null)? t2[i] : t2; },
   sig:(n)=>{ n=n||24; let out=[]; for(let r=0;r<n;r++){ let row=[]; for(let c=0;c<COLS;c++){ const f=cells.get(r+','+c); row.push(f?(f.type[0]+(f.name?f.name[0]:'')+(f.seed!=null?f.seed:'')+(f.broken?'B':'')+(f.claimedBy?'@'+f.claimedBy[0]:'')):'.'); } out.push(row.join('')); } return out.join('/'); },
   setEnd:(side,saved,sold)=>{ playerSide=side; plotsSaved=saved; plotsSold=sold; moedasUnicorn=(sold>=5); if(!moedas)moedas=makeMoedas(false); moedas.unicorn=moedasUnicorn; playCut('end',999); },
   pos:()=>({p:[player.x|0,player.y|0], m:[moedas.x|0,moedas.y|0], l:[lisboetas.x|0,lisboetas.y|0], idle:aiIdle, music:musicOn})
