@@ -2676,28 +2676,55 @@ function cutUnicorn(p){
     if(Math.sin(T*2+i*1.7)>0.1){ ctx.fillStyle='rgba(255,255,255,.55)'; ctx.fillRect(sx2,sy2,2,2); } }
   ctx.fillStyle='#3c3345'; ctx.fillRect(0,ground,W,H-ground);
   const carX=W*0.20, bx=Math.min(W*0.72,W-190);
-  // ---- Fábrica de Unicórnios (sempre em cena) ----
+  // ---- Fábrica de Unicórnios: os silos do Beato (Unicorn Factory) ----
   const slammed = T>=9.2;
   const shx = (T>=9.2&&T<9.6)? Math.sin(T*70)*4*clamp((9.6-T)/0.4,0,1) : 0;
   ctx.save(); ctx.translate(shx,0);
-  const bw3=300, bh3=170, byTop=ground-bh3;
-  ctx.fillStyle='rgba(0,0,0,.4)'; rr(ctx,bx-bw3/2+8,byTop+9,bw3,bh3,6); ctx.fill();
-  const wg2=ctx.createLinearGradient(0,byTop,0,ground);
-  wg2.addColorStop(0,'#8a7f66'); wg2.addColorStop(1,'#6b6250');
-  ctx.fillStyle=wg2; rr(ctx,bx-bw3/2,byTop,bw3,bh3,6); ctx.fill();
-  ctx.strokeStyle='#4a4436'; ctx.lineWidth=3; rr(ctx,bx-bw3/2,byTop,bw3,bh3,6); ctx.stroke();
-  ctx.strokeStyle='rgba(60,52,40,.4)'; ctx.lineWidth=1;
-  for(let yy=byTop+14;yy<ground-4;yy+=13){ ctx.beginPath(); ctx.moveTo(bx-bw3/2+2,yy); ctx.lineTo(bx+bw3/2-2,yy); ctx.stroke(); }
-  // janelas industriais (brilham com magia na fase E)
-  for(const wx of [-105,0,105]){
-    if(T>=10&&T<12){ const pulse=0.45+0.35*Math.sin(T*9+wx);
-      ctx.fillStyle=`hsla(${(T*140+wx)%360},85%,65%,${pulse})`; }
-    else ctx.fillStyle='rgba(160,200,220,.30)';
-    rr(ctx,bx+wx-24,byTop+34,48,36,4); ctx.fill();
-    ctx.strokeStyle='#4a4436'; ctx.lineWidth=2; rr(ctx,bx+wx-24,byTop+34,48,36,4); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(bx+wx,byTop+34); ctx.lineTo(bx+wx,byTop+70);
-    ctx.moveTo(bx+wx-24,byTop+52); ctx.lineTo(bx+wx+24,byTop+52); ctx.stroke();
+  const nS=5, siloW=46, silosL=bx-(nS*siloW)/2, silosTop=ground-150;
+  const twX=silosL-70, twW=62, twTop=ground-218;
+  // sombras
+  ctx.fillStyle='rgba(0,0,0,.4)';
+  rr(ctx,twX+8,twTop+10,twW,ground-twTop-10,4); ctx.fill();
+  rr(ctx,silosL+8,silosTop+8,nS*siloW,142,6); ctx.fill();
+  // torre alta (à esquerda) com faixa vermelha icónica
+  const twg=ctx.createLinearGradient(twX,0,twX+twW,0);
+  twg.addColorStop(0,'#cfc3a6'); twg.addColorStop(0.5,'#e2d8bf'); twg.addColorStop(1,'#b3a689');
+  ctx.fillStyle=twg; ctx.fillRect(twX,twTop,twW,ground-twTop);
+  ctx.strokeStyle='#8a7f66'; ctx.lineWidth=2.5; ctx.strokeRect(twX,twTop,twW,ground-twTop);
+  ctx.fillStyle='#9a8f74'; ctx.fillRect(twX,twTop,twW,7);              // cornija
+  ctx.strokeStyle='#6b6250'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(twX+12,twTop); ctx.lineTo(twX+12,twTop-13); ctx.stroke(); // antena
+  ctx.strokeStyle='rgba(107,98,80,.6)'; ctx.lineWidth=1;
+  ctx.strokeRect(twX+twW-21,twTop+12,11,ground-twTop-26);
+  ctx.fillStyle='#b03a2e';                                              // faixa tracejada
+  for(let yy=twTop+16; yy<ground-14; yy+=16){ ctx.fillRect(twX+twW-20,yy,9,10); }
+  // janelas vermelhas no topo da torre (brilham com magia na fase E)
+  for(let r2=0;r2<2;r2++) for(let c2=0;c2<2;c2++){
+    const wx2=twX+9+c2*24, wy2=twTop+15+r2*21;
+    if(T>=10&&T<12){ const pulse=0.5+0.35*Math.sin(T*9+r2+c2*2);
+      ctx.fillStyle=`hsla(${(T*140+c2*60)%360},85%,65%,${pulse})`; }
+    else ctx.fillStyle='#3a3428';
+    ctx.fillRect(wx2,wy2,16,13);
+    ctx.strokeStyle='#b03a2e'; ctx.lineWidth=2; ctx.strokeRect(wx2,wy2,16,13);
   }
+  // parede de topo atrás dos silos, com retângulos vermelhos
+  ctx.fillStyle='#c6bb9e'; ctx.fillRect(silosL,silosTop-24,nS*siloW,34);
+  ctx.strokeStyle='#8a7f66'; ctx.lineWidth=2; ctx.strokeRect(silosL,silosTop-24,nS*siloW,34);
+  ctx.fillStyle='#b03a2e';
+  for(let i=0;i<8;i++){ ctx.fillRect(silosL+10+i*((nS*siloW-24)/7),silosTop-17,9,12); }
+  // 5 silos cilíndricos com topo arredondado
+  for(let i=0;i<nS;i++){
+    const x0=silosL+i*siloW;
+    const sg3=ctx.createLinearGradient(x0,0,x0+siloW,0);
+    sg3.addColorStop(0,'#b3a689'); sg3.addColorStop(0.45,'#ecdfc4'); sg3.addColorStop(1,'#a89b7e');
+    ctx.fillStyle=sg3; ctx.fillRect(x0,silosTop+9,siloW,ground-silosTop-9);
+    ctx.beginPath(); ctx.ellipse(x0+siloW/2,silosTop+9,siloW/2,10,0,Math.PI,0); ctx.fill();
+    ctx.strokeStyle='rgba(138,127,102,.8)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.ellipse(x0+siloW/2,silosTop+9,siloW/2,10,0,Math.PI,0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0,silosTop+9); ctx.lineTo(x0,ground); ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(138,127,102,.8)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(silosL+nS*siloW,silosTop+9); ctx.lineTo(silosL+nS*siloW,ground); ctx.stroke();
   // porta
   const doorW=56, doorH=80;
   if(T<12){
@@ -2717,22 +2744,41 @@ function cutUnicorn(p){
         ctx.beginPath(); ctx.moveTo(bx+Math.cos(an)*36,ground-40+Math.sin(an)*36);
         ctx.lineTo(bx+Math.cos(an)*(52+((T*90)%22)),ground-40+Math.sin(an)*(52+((T*90)%22))); ctx.stroke(); } }
   }
-  // tabuleta antiga (revelada por baixo)
-  ctx.fillStyle='#cbb994'; rr(ctx,bx-120,byTop-24,240,28,4); ctx.fill();
-  ctx.strokeStyle='#8a774f'; ctx.lineWidth=2; rr(ctx,bx-120,byTop-24,240,28,4); ctx.stroke();
-  ctx.fillStyle='#33260f'; ctx.font='900 15px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
-  ctx.fillText('HUB Criativo do Beato',bx,byTop-4);
-  // tabuleta rosa (cai a balançar com o slam)
+  // «HUB Criativo do BEato» pintado nos silos (revelado quando a lona cai)
+  ctx.fillStyle='#2e7d28'; ctx.font='900 16px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+  ctx.fillText('HUB Criativo',bx,silosTop+44);
+  ctx.fillText('do BEato',bx,silosTop+63);
+  // lona escura «Fábrica de Unicórnios» drapejada nos silos (cai com o slam)
   const fallP=slammed? clamp((T-9.25)/1.0,0,1) : 0;
   const ang=1.32*Math.min(1,fallP*1.25)+Math.sin(T*4.5)*0.05*fallP;
-  ctx.save(); ctx.translate(bx-120,byTop-22); ctx.rotate(ang);
-  ctx.fillStyle='rgba(0,0,0,.35)'; rr(ctx,3,4,244,32,4); ctx.fill();
-  const pg=ctx.createLinearGradient(0,0,0,32); pg.addColorStop(0,'#f591cf'); pg.addColorStop(1,'#d158a8');
-  ctx.fillStyle=pg; rr(ctx,0,0,244,32,4); ctx.fill();
-  ctx.strokeStyle='#8f2a6b'; ctx.lineWidth=2.5; rr(ctx,0,0,244,32,4); ctx.stroke();
-  ctx.fillStyle='#fff'; ctx.font='900 15px "Arial Black", Impact, sans-serif';
-  ctx.fillText('🦄 Fábrica de Unicórnios',122,22);
+  const banW=nS*siloW+8, banY=silosTop+18;
+  ctx.save(); ctx.translate(silosL-4,banY); ctx.rotate(ang);
+  ctx.fillStyle='rgba(0,0,0,.35)'; rr(ctx,3,4,banW,52,3); ctx.fill();
+  const lg2=ctx.createLinearGradient(0,0,0,52); lg2.addColorStop(0,'#2c2636'); lg2.addColorStop(1,'#1c1826');
+  ctx.fillStyle=lg2; rr(ctx,0,0,banW,52,3); ctx.fill();
+  ctx.strokeStyle='#0e0c14'; ctx.lineWidth=2; rr(ctx,0,0,banW,52,3); ctx.stroke();
+  // vincos da lona sobre cada silo
+  ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=2;
+  for(let i=1;i<nS;i++){ ctx.beginPath(); ctx.moveTo(4+i*siloW,2); ctx.lineTo(4+i*siloW,50); ctx.stroke(); }
+  // motivos coloridos em arco (como na lona real)
+  const MCOLS=['#e05a8a','#5a8fe0','#e0d05a','#7ae08a','#e08a5a','#b56bf2'];
+  const MR=mulberry32(4);
+  for(let i=0;i<9;i++){ const ax=10+MR()*52, ay=13+MR()*26, arw=4+MR()*5;
+    ctx.strokeStyle=MCOLS[i%6]; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(ax,ay,arw,Math.PI,0);
+    ctx.moveTo(ax-arw,ay); ctx.lineTo(ax-arw,ay+arw);
+    ctx.moveTo(ax+arw,ay); ctx.lineTo(ax+arw,ay+arw); ctx.stroke(); }
+  ctx.fillStyle='#fff'; ctx.font='900 16px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+  ctx.fillText('🦄 Fábrica de Unicórnios',banW/2+32,22);
+  ctx.fillStyle='rgba(255,255,255,.65)'; ctx.font='italic 9px Trebuchet MS';
+  ctx.fillText('É só um mito até o tornares realidade.',banW/2+32,39);
   ctx.restore();
+  // pilares brancos do portão com esferas
+  for(const px2 of [bx-66,bx+66]){
+    ctx.fillStyle='#e8e4da'; ctx.fillRect(px2-8,ground-42,16,42);
+    ctx.strokeStyle='#b8b2a4'; ctx.lineWidth=1.5; ctx.strokeRect(px2-8,ground-42,16,42);
+    ctx.beginPath(); ctx.arc(px2,ground-48,7,0,TAU); ctx.fillStyle='#efece4'; ctx.fill(); ctx.stroke();
+  }
   ctx.restore(); // shx
   // ---- carro avariado: engasga com MUITO fumo ----
   let jx=0,jy=0,rock=0;
