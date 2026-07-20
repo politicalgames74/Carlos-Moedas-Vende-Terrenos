@@ -6,7 +6,7 @@ Corre para chegar primeiro aos 10 terrenos que o **Carlos Moedas** quer vender e
 
 ## 🎮 Jogar
 
-**Online:** `https://<utilizador>.github.io/<repo>/` *(atualizar depois de ativar o GitHub Pages)*
+**Online:** https://politicalgames74.github.io/Carlos-Moedas-Vende-Terrenos/
 
 **Local:** basta abrir o `index.html` num browser. Sem dependências, sem build — um único ficheiro HTML.
 
