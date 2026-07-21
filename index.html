@@ -519,11 +519,11 @@ function paintPortraitR(g,mood){
   const hairPath=()=>{
     g.beginPath();
     g.moveTo(64,98);
-    g.bezierCurveTo(60,80,58,56,64,44);        // lado esquerdo sobe
-    g.bezierCurveTo(68,36,80,31,94,29);        // canto quadrado
-    g.bezierCurveTo(112,27,128,26,140,29);     // topo aparado a varrer
-    g.lineTo(153,33);
-    g.lineTo(159,42); g.lineTo(153,49);        // ponta 1 (suave)
+    g.bezierCurveTo(60,80,58,56,64,49);        // lado esquerdo sobe
+    g.bezierCurveTo(68,41,80,36,94,34);        // canto quadrado
+    g.bezierCurveTo(112,32,128,31,140,34);     // topo aparado a varrer
+    g.lineTo(153,38);
+    g.lineTo(159,46); g.lineTo(153,52);        // ponta 1 (suave)
     g.lineTo(161,60); g.lineTo(155,70);        // ponta 2 (suave)
     g.lineTo(159,86); g.lineTo(157,100);       // ponta 3 (suave)
     // linha do cabelo (de volta, direita → risca → aba esquerda)
@@ -539,29 +539,29 @@ function paintPortraitR(g,mood){
   // aba à esquerda da risca: penteada para baixo, tom mais escuro
   g.fillStyle='#9aa0a7';
   g.beginPath(); g.moveTo(64,98);
-  g.bezierCurveTo(60,80,58,56,64,44);
-  g.bezierCurveTo(66,38,70,33,76,31);
-  g.bezierCurveTo(76,42,79,52,86,64);
+  g.bezierCurveTo(60,80,58,56,64,49);
+  g.bezierCurveTo(66,43,70,38,76,36);
+  g.bezierCurveTo(76,46,79,54,86,64);
   g.bezierCurveTo(80,68,72,76,67,86);
   g.bezierCurveTo(65,92,64,95,64,98);
   g.closePath(); g.fill();
   // metade de trás mais escura (as pontas)
   g.fillStyle='#7d838b';
-  g.beginPath(); g.moveTo(122,27); g.bezierCurveTo(134,26,148,30,153,33);
-  g.lineTo(159,42); g.lineTo(153,49); g.lineTo(161,60); g.lineTo(155,70);
+  g.beginPath(); g.moveTo(122,32); g.bezierCurveTo(134,31,148,35,153,38);
+  g.lineTo(159,46); g.lineTo(153,52); g.lineTo(161,60); g.lineTo(155,70);
   g.lineTo(159,86); g.lineTo(157,100);
   g.bezierCurveTo(155,84,152,74,146,68);
   g.bezierCurveTo(138,63,130,61,122,60); g.closePath(); g.fill();
   // brilho anguloso a acompanhar o varrimento (nasce junto à risca)
   g.fillStyle='#e7ebee';
-  g.beginPath(); g.moveTo(91,55); g.lineTo(102,42); g.lineTo(116,47);
-  g.lineTo(130,39); g.lineTo(141,45); g.lineTo(136,51); g.lineTo(122,44);
-  g.lineTo(108,52); g.lineTo(97,49); g.lineTo(94,58); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(91,56); g.lineTo(102,45); g.lineTo(116,49);
+  g.lineTo(130,42); g.lineTo(141,47); g.lineTo(136,53); g.lineTo(122,47);
+  g.lineTo(108,54); g.lineTo(97,51); g.lineTo(94,58); g.closePath(); g.fill();
   // madeixas a irradiar da risca para a direita
   g.strokeStyle='#565c64'; g.lineWidth=2;
   g.beginPath(); g.moveTo(88,58); g.bezierCurveTo(106,47,130,45,152,57); g.stroke();
   g.beginPath(); g.moveTo(87,62); g.bezierCurveTo(104,53,132,51,155,66); g.stroke();
-  g.beginPath(); g.moveTo(90,52); g.bezierCurveTo(104,42,126,39,145,44); g.stroke();
+  g.beginPath(); g.moveTo(90,53); g.bezierCurveTo(104,45,126,42,145,47); g.stroke();
   // madeixas da aba, penteadas para baixo-esquerda
   g.strokeStyle='#7f858c'; g.lineWidth=1.8;
   g.beginPath(); g.moveTo(83,62); g.bezierCurveTo(76,68,70,78,67,88); g.stroke();
@@ -570,9 +570,9 @@ function paintPortraitR(g,mood){
   hairPath(); g.strokeStyle=INK; g.lineWidth=3; g.stroke();
   // A RISCA: linha de tinta + fresta clara ao lado
   g.strokeStyle=INK; g.lineWidth=2.2;
-  g.beginPath(); g.moveTo(86,64); g.bezierCurveTo(83,56,81,48,80,41); g.stroke();
+  g.beginPath(); g.moveTo(86,64); g.bezierCurveTo(83,58,81,51,80,45); g.stroke();
   g.strokeStyle='#ced3d8'; g.lineWidth=1.4;
-  g.beginPath(); g.moveTo(89,63); g.bezierCurveTo(86,55,84,48,83,42); g.stroke();
+  g.beginPath(); g.moveTo(89,63); g.bezierCurveTo(86,57,84,51,83,46); g.stroke();
   // cabelo curto dos lados
   g.fillStyle='#8d9196';
   g.beginPath(); g.moveTo(61,94); g.bezierCurveTo(59,108,60,118,63,126);
