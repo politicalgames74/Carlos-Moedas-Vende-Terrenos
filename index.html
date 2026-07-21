@@ -3281,8 +3281,13 @@ function updatePlay(dt){
   for(const p of plots) if(!p.claimedBy && camY - p.y > 1.8*H) resolveAbandonedPlot(p);
   updateParticles(dt);
 }
+// O unicórnio é claramente mais rápido que o Moedas de carro (245 no
+// computador, 210 no jogador), mas fica logo abaixo dos 282 dos Lisboetas:
+// uma corrida impecável ainda o bate, e o computador dos Lisboetas com a
+// borracha no máximo (277) também o alcança. Dá tensão em vez de derrota certa.
+const UNICORN_SPEED = 272;
 function playerBaseSpeed(){
-  if(player.kind==='moedas'){ return player.unicorn? 320 : 210; }
+  if(player.kind==='moedas'){ return player.unicorn? UNICORN_SPEED : 210; }
   return 282;   // Lisboetas um pouco mais rápidos para terem hipótese
 }
 // ---- borracha: o computador acelera quando fica muito para trás ----
@@ -3309,7 +3314,7 @@ function catchupBoost(){
   return boost;
 }
 function oppSpeed(){
-  const base = (playerSide==='moedas') ? 150 : (moedas.unicorn?300:245);
+  const base = (playerSide==='moedas') ? 150 : (moedas.unicorn?UNICORN_SPEED:245);
   // o tecto relativo evita teletransportes: recupera terreno, não humilha
   return Math.min(base*catchupBoost(), playerBaseSpeed()*CATCH_CEIL);
 }
