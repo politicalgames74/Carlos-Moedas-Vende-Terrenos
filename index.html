@@ -185,6 +185,7 @@ const TOTAL_PLOTS = 10;
 
 // ---------- sprite helpers ----------
 const OUT='#221c16';
+const CEL='#22262c';   // tinta dos contornos cel-shading (estilo Ace Attorney)
 function mkCanvas(w,h,fn){
   const c=document.createElement('canvas'); c.width=w*2; c.height=h*2;
   const g=c.getContext('2d'); g.scale(2,2); g.lineJoin='round'; g.lineCap='round';
@@ -1938,19 +1939,24 @@ function drawWheelBack(x,y){
   ctx.fillStyle='rgba(255,255,255,.12)'; rr(ctx,x-8,y-24,5,48,3); ctx.fill();
   ctx.fillStyle='#f2c400'; ctx.beginPath(); ctx.arc(x,y,4,0,TAU); ctx.fill();
 }
-function drawMoedasBack(x,y,s){   // cabeça e ombros de costas (cabelo grisalho)
+function drawMoedasBack(x,y,s){   // cabeça e ombros de costas (cel, com risca ao lado)
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
-  ctx.fillStyle='#22375c'; rr(ctx,-15,0,30,16,6); ctx.fill();
-  ctx.strokeStyle='#0d1626'; ctx.lineWidth=1.5; rr(ctx,-15,0,30,16,6); ctx.stroke();
-  ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,1); ctx.lineTo(0,15); ctx.stroke();
-  ctx.fillStyle='#e9b98f'; ctx.fillRect(-4,-5,8,7);
-  const hg=ctx.createRadialGradient(-3,-13,2,0,-9,13); hg.addColorStop(0,'#eceff2'); hg.addColorStop(1,'#9298a0');
-  ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(0,-9,11,0,TAU); ctx.fill();
-  ctx.strokeStyle='#7d8288'; ctx.lineWidth=1; ctx.stroke();
-  ctx.fillStyle='#eabf95';
+  ctx.fillStyle='#26386f'; rr(ctx,-15,0,30,16,6); ctx.fill();
+  ctx.fillStyle='#1a2850'; rr(ctx,6,1,8,14,4); ctx.fill();          // plano de sombra
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,-15,0,30,16,6); ctx.stroke();
+  ctx.fillStyle='#f2cba2'; ctx.fillRect(-4,-5,8,7);                 // nuca
+  ctx.fillStyle='#a9afb6'; ctx.beginPath(); ctx.arc(0,-9,11,0,TAU); ctx.fill();
+  ctx.fillStyle='#7d838b';                                          // plano de sombra da cabeça
+  ctx.beginPath(); ctx.arc(0,-9,11,-0.6,1.2); ctx.lineTo(0,-9); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#e7ebee';                                          // brilho anguloso
+  ctx.beginPath(); ctx.moveTo(-7,-15); ctx.lineTo(-2,-18.5); ctx.lineTo(3,-16); ctx.lineTo(-2,-13.5); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; ctx.beginPath(); ctx.arc(0,-9,11,0,TAU); ctx.stroke();
+  ctx.fillStyle='#f2cba2';                                          // orelhas
   ctx.beginPath(); ctx.arc(-11,-7,2.6,0,TAU); ctx.fill(); ctx.beginPath(); ctx.arc(11,-7,2.6,0,TAU); ctx.fill();
-  ctx.strokeStyle='rgba(110,116,122,.7)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(0,-19); ctx.lineTo(0,-2); ctx.stroke();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.3;                           // risca ao lado (esquerda)
+  ctx.beginPath(); ctx.moveTo(-5,-19); ctx.lineTo(-6,-4); ctx.stroke();
+  ctx.strokeStyle='#ced3d8'; ctx.lineWidth=1.1;
+  ctx.beginPath(); ctx.moveTo(-3.6,-18.6); ctx.lineTo(-4.6,-5); ctx.stroke();
   ctx.restore();
 }
 function drawCarRear(){   // carro Noddy de trás (a subir); topo = frente
@@ -1983,17 +1989,18 @@ function drawUniRear(t){   // unicórnio de trás; cauda arco-íris a cair para 
   ctx.beginPath(); ctx.moveTo(-16,22); ctx.lineTo(-20+gal*6,54); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(16,22); ctx.lineTo(20-gal*6,54); ctx.stroke();
   ctx.fillStyle='#c9a54a'; ctx.fillRect(-25+gal*6,52,9,5); ctx.fillRect(16-gal*6,52,9,5);
-  const bd=ctx.createLinearGradient(-30,0,30,0);
-  bd.addColorStop(0,'#d8d9e2'); bd.addColorStop(0.5,'#ffffff'); bd.addColorStop(1,'#d8d9e2');
-  ctx.fillStyle=bd; ctx.beginPath(); ctx.ellipse(0,16,30,26,0,0,TAU); ctx.fill();
-  ctx.strokeStyle='#a7a9b6'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(0,16,30,26,0,0,TAU); ctx.fill();
+  ctx.fillStyle='#d3d5e0';                          // plano de sombra cel
+  ctx.beginPath(); ctx.ellipse(0,16,30,26,0,-1.15,1.15); ctx.lineTo(0,16); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.6; ctx.beginPath(); ctx.ellipse(0,16,30,26,0,0,TAU); ctx.stroke();
   for(let i=0;i<6;i++){ ctx.strokeStyle=`hsl(${i*55},90%,58%)`; ctx.lineWidth=4;
     ctx.beginPath(); ctx.moveTo(-10+i*4,30); ctx.quadraticCurveTo(-8+i*4+Math.sin(t*3+i)*4,50,-6+i*4,66); ctx.stroke(); }
-  ctx.strokeStyle='#22375c'; ctx.lineWidth=6;   // braços no ar
+  ctx.strokeStyle='#26386f'; ctx.lineWidth=6;   // braços no ar
   ctx.beginPath(); ctx.moveTo(-8,-4); ctx.lineTo(-21,-30+gal*4); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(8,-4); ctx.lineTo(21,-30-gal*4); ctx.stroke();
-  ctx.fillStyle='#eec39b';
-  ctx.beginPath(); ctx.arc(-22,-33+gal*4,4,0,TAU); ctx.fill(); ctx.beginPath(); ctx.arc(22,-33-gal*4,4,0,TAU); ctx.fill();
+  ctx.fillStyle='#f2cba2'; ctx.strokeStyle=CEL; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.arc(-22,-33+gal*4,4,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(22,-33-gal*4,4,0,TAU); ctx.fill(); ctx.stroke();
   drawMoedasBack(0,-4,1.5);
   ctx.fillStyle='#f2f2f7';   // orelhas + ponta do corno a espreitar
   ctx.beginPath(); ctx.moveTo(-6,-18); ctx.lineTo(-9,-25); ctx.lineTo(-3,-20); ctx.closePath(); ctx.fill();
@@ -2005,17 +2012,22 @@ function drawBikeRear(x,y,s,v){   // bicicleta Gira de trás; cartaz virado para
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
   ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(0,27,10,4,0,0,TAU); ctx.fill();
   ctx.fillStyle='#1b1b20'; rr(ctx,-4,4,8,23,3); ctx.fill();          // roda traseira
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6; rr(ctx,-4,4,8,23,3); ctx.stroke();
   ctx.fillStyle='#79b52d'; rr(ctx,-6,1,12,9,2); ctx.fill();          // guarda-lama verde
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6; rr(ctx,-6,1,12,9,2); ctx.stroke();
   ctx.strokeStyle='#c8ccd0'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(0,3); ctx.lineTo(0,-8); ctx.stroke();
   ctx.fillStyle=BIKE_JACKETS[v%5]; rr(ctx,-8,-12,16,17,6); ctx.fill();  // ciclista de costas
-  ctx.strokeStyle='rgba(0,0,0,.3)'; ctx.lineWidth=1; rr(ctx,-8,-12,16,17,6); ctx.stroke();
-  ctx.fillStyle='#eec39b'; ctx.beginPath(); ctx.arc(0,-14,4,0,TAU); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.2)'; rr(ctx,2,-12,6,17,4); ctx.fill();     // plano de sombra
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,-8,-12,16,17,6); ctx.stroke();
+  ctx.fillStyle='#f2cba2'; ctx.beginPath(); ctx.arc(0,-14,4,0,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.5; ctx.stroke();
   ctx.fillStyle=BIKE_HAIR[v%5]; ctx.beginPath(); ctx.arc(0,-16,5,0,TAU); ctx.fill();
   ctx.save(); ctx.translate(0,-31); ctx.rotate((v%2?1:-1)*0.05);       // cartaz de protesto
   ctx.fillStyle='#7a6a4c'; ctx.fillRect(-1.5,6,3,18);
   ctx.fillStyle='#d9c69a'; rr(ctx,-17,-11,34,22,2); ctx.fill();
-  ctx.strokeStyle='#8a774f'; ctx.lineWidth=1.5; rr(ctx,-17,-11,34,22,2); ctx.stroke();
-  ctx.fillStyle='#3a2f18'; ctx.font='bold 6px Trebuchet MS'; ctx.textAlign='center';
+  ctx.fillStyle='#bda878'; ctx.fillRect(-17,2,34,9);                   // plano de sombra
+  ctx.strokeStyle=CEL; ctx.lineWidth=2; rr(ctx,-17,-11,34,22,2); ctx.stroke();
+  ctx.fillStyle=CEL; ctx.font='bold 6px Trebuchet MS'; ctx.textAlign='center';
   ctx.fillText(BIKE_SIGNS[(v*2)%BIKE_SIGNS.length], 0,-2);
   ctx.fillText(BIKE_SIGNS[(v*2+1)%BIKE_SIGNS.length], 0,6);
   ctx.restore();
@@ -2253,27 +2265,32 @@ function drawProtester(x,y,s,v,t,signLines){
   const wob=Math.sin(t*2.2+v*1.7)*4;
   const skin=PROT_SKIN[v%4];
   const jack=['#4a5a8f','#6b4a2f','#5a6b2f','#8f3a3a'][v%4];
-  // legs
-  ctx.fillStyle='#2c3a55'; rr(ctx,-17,54,14,42,4); ctx.fill(); rr(ctx,3,54,14,42,4); ctx.fill();
-  ctx.fillStyle='#1a1a1e'; rr(ctx,-19,92,18,8,3); ctx.fill(); rr(ctx,1,92,18,8,3); ctx.fill();
+  // pernas (cel: cor chapada + tinta)
+  ctx.fillStyle='#33456a'; ctx.strokeStyle=CEL; ctx.lineWidth=2.2;
+  rr(ctx,-17,54,14,42,4); ctx.fill(); ctx.stroke();
+  rr(ctx,3,54,14,42,4); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#24314b'; rr(ctx,-8,54,5,42,2); ctx.fill(); rr(ctx,12,54,5,42,2); ctx.fill();  // sombra
+  ctx.fillStyle='#1a1a1e';
+  rr(ctx,-19,92,18,8,3); ctx.fill(); ctx.stroke(); rr(ctx,1,92,18,8,3); ctx.fill(); ctx.stroke();
   if(signLines){
     // cardboard sign held overhead with both arms (ref pose)
     ctx.save(); ctx.rotate(wob*0.008);
-    // arms up
-    ctx.strokeStyle=jack; ctx.lineWidth=13;
+    // braços no ar (com contorno de tinta)
+    ctx.lineCap='round';
+    ctx.strokeStyle=CEL; ctx.lineWidth=16;
     ctx.beginPath(); ctx.moveTo(-14,10); ctx.lineTo(-40,-58+wob); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(14,10); ctx.lineTo(40,-58+wob); ctx.stroke();
-    ctx.fillStyle=skin;
-    ctx.beginPath(); ctx.arc(-40,-62+wob,7,0,TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(40,-62+wob,7,0,TAU); ctx.fill();
-    // board
+    ctx.strokeStyle=jack; ctx.lineWidth=12;
+    ctx.beginPath(); ctx.moveTo(-14,10); ctx.lineTo(-40,-58+wob); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(14,10); ctx.lineTo(40,-58+wob); ctx.stroke();
+    ctx.fillStyle=skin; ctx.strokeStyle=CEL; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(-40,-62+wob,7,0,TAU); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(40,-62+wob,7,0,TAU); ctx.fill(); ctx.stroke();
+    // cartaz (cel: chapado + plano de sombra + tinta)
     ctx.save(); ctx.translate(0,wob);
-    ctx.fillStyle='rgba(0,0,0,.4)'; rr(ctx,-66+4,-132+5,132,66,4); ctx.fill();
-    const cb=ctx.createLinearGradient(0,-132,0,-66);
-    cb.addColorStop(0,'#dcc99c'); cb.addColorStop(1,'#c2ab78');
-    ctx.fillStyle=cb; rr(ctx,-66,-132,132,66,4); ctx.fill();
-    ctx.strokeStyle='#8a774f'; ctx.lineWidth=3; rr(ctx,-66,-132,132,66,4); ctx.stroke();
-    ctx.strokeStyle='rgba(138,119,79,.5)'; ctx.lineWidth=1.5; rr(ctx,-60,-126,120,54,3); ctx.stroke();
+    ctx.fillStyle='#d9c69a'; rr(ctx,-66,-132,132,66,4); ctx.fill();
+    ctx.fillStyle='#bda878'; rr(ctx,-66,-92,132,26,4); ctx.fill();
+    ctx.strokeStyle=CEL; ctx.lineWidth=3.4; rr(ctx,-66,-132,132,66,4); ctx.stroke();
     ctx.fillStyle='#2e2214'; ctx.textAlign='center';
     signLines.forEach((ln,i)=>{                    // encolhe a linha se não couber no cartão
       ctx.font='900 13px "Arial Black", Impact, sans-serif';
@@ -2284,23 +2301,32 @@ function drawProtester(x,y,s,v,t,signLines){
     ctx.restore();
     ctx.restore();
   } else {
-    // both fists in the air
-    ctx.strokeStyle=jack; ctx.lineWidth=13;
+    // punhos no ar (com contorno de tinta)
+    ctx.lineCap='round';
+    ctx.strokeStyle=CEL; ctx.lineWidth=16;
     ctx.beginPath(); ctx.moveTo(-14,12); ctx.lineTo(-34,-38+wob); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(14,12); ctx.lineTo(34,-44-wob); ctx.stroke();
-    ctx.fillStyle=skin;
-    ctx.beginPath(); ctx.arc(-34,-43+wob,8,0,TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(34,-49-wob,8,0,TAU); ctx.fill();
+    ctx.strokeStyle=jack; ctx.lineWidth=12;
+    ctx.beginPath(); ctx.moveTo(-14,12); ctx.lineTo(-34,-38+wob); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(14,12); ctx.lineTo(34,-44-wob); ctx.stroke();
+    ctx.fillStyle=skin; ctx.strokeStyle=CEL; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(-34,-43+wob,8,0,TAU); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(34,-49-wob,8,0,TAU); ctx.fill(); ctx.stroke();
   }
-  // torso
-  const tg2=ctx.createLinearGradient(0,0,0,58);
-  tg2.addColorStop(0,jack); tg2.addColorStop(1,'rgba(0,0,0,.35)');
+  // tronco (cel: chapado + plano de sombra angular + tinta)
   ctx.fillStyle=jack; rr(ctx,-24,0,48,58,12); ctx.fill();
-  ctx.fillStyle='rgba(0,0,0,.18)'; rr(ctx,-24,34,48,24,10); ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.lineWidth=2.5; rr(ctx,-24,0,48,58,12); ctx.stroke();
-  // head
+  ctx.save(); rr(ctx,-24,0,48,58,12); ctx.clip();
+  ctx.fillStyle='rgba(0,0,0,.22)';
+  ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(24,0); ctx.lineTo(24,58); ctx.lineTo(4,58); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.16)';
+  ctx.beginPath(); ctx.moveTo(-22,4); ctx.lineTo(-12,2); ctx.lineTo(-14,52); ctx.lineTo(-22,52); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle=CEL; ctx.lineWidth=3; rr(ctx,-24,0,48,58,12); ctx.stroke();
+  // cabeça
   ctx.fillStyle=skin; ctx.beginPath(); ctx.arc(0,-16,16,0,TAU); ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,.14)';                     // sombra cel do lado direito
+  ctx.beginPath(); ctx.arc(0,-16,16,-1.15,1.15); ctx.lineTo(0,-16); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.6; ctx.beginPath(); ctx.arc(0,-16,16,0,TAU); ctx.stroke();
   // hair variants
   if(v%4===0){ ctx.fillStyle='#2c2c30'; ctx.beginPath(); ctx.arc(0,-20,15,Math.PI*0.95,Math.PI*2.05); ctx.fill(); }
   else if(v%4===1){ ctx.fillStyle='#3a2a1a';
@@ -2309,15 +2335,16 @@ function drawProtester(x,y,s,v,t,signLines){
     ctx.fillRect(-14,-22,28,5); ctx.fillStyle='#8f2a1c'; ctx.fillRect(-14,-18,28,2.5); }
   else { ctx.fillStyle='#6b4a2f'; ctx.beginPath(); ctx.arc(0,-20,15,Math.PI*0.9,Math.PI*2.1); ctx.fill();
     rr(ctx,10,-24,8,26,4); ctx.fill(); }
-  // angry face
-  ctx.strokeStyle='#3a2a1a'; ctx.lineWidth=2.5;
-  ctx.beginPath(); ctx.moveTo(-10,-22); ctx.lineTo(-3,-19); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(10,-22); ctx.lineTo(3,-19); ctx.stroke();
-  ctx.fillStyle='#2e2118';
-  ctx.beginPath(); ctx.arc(-6,-16,2.2,0,TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(6,-16,2.2,0,TAU); ctx.fill();
-  ctx.fillStyle='#7a2f28'; ctx.beginPath(); ctx.ellipse(0,-7,5.5,4,0,0,TAU); ctx.fill();
-  ctx.fillStyle='#fff'; ctx.fillRect(-4,-10.5,8,2.2);
+  // cara zangada (sobrancelhas angulosas grossas, boca aberta a gritar)
+  ctx.fillStyle=CEL;
+  ctx.beginPath(); ctx.moveTo(-11,-23); ctx.lineTo(-3,-19.5); ctx.lineTo(-3,-17.5); ctx.lineTo(-11,-20.5); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(11,-23); ctx.lineTo(3,-19.5); ctx.lineTo(3,-17.5); ctx.lineTo(11,-20.5); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(-6,-15,2.4,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(6,-15,2.4,0,TAU); ctx.fill();
+  ctx.fillStyle='#5b2a21'; ctx.beginPath(); ctx.ellipse(0,-7,5.5,4,0,0,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.fillRect(-4,-10.2,8,2.2);
+  ctx.lineCap='butt';
   ctx.restore();
 }
 let menuBtns=[];
@@ -2502,27 +2529,37 @@ function drawMenu(){
 }
 // ================= SIDE-VIEW ART (cutscenes) =================
 function drawMoedasHeadSide(x,y,s,mood){
+  // cel-shading: cores chapadas, tinta CEL, alinhado com o retrato novo
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
-  ctx.fillStyle='#1d3560'; rr(ctx,-11,2,22,18,6); ctx.fill();   // suit
-  ctx.strokeStyle=OUT; ctx.lineWidth=1.5; rr(ctx,-11,2,22,18,6); ctx.stroke();
-  ctx.fillStyle='#f4f1e8'; ctx.beginPath(); ctx.moveTo(-2,3); ctx.lineTo(4,3); ctx.lineTo(1,12); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='#eec39b'; ctx.beginPath(); ctx.arc(0,-6,9,0,TAU); ctx.fill();
-  ctx.strokeStyle='#b98b60'; ctx.lineWidth=1.2; ctx.stroke();
-  ctx.fillStyle='rgba(178,182,186,.85)';                          // beard
+  ctx.fillStyle='#26386f'; rr(ctx,-11,2,22,18,6); ctx.fill();    // fato
+  ctx.fillStyle='#1a2850'; rr(ctx,4,3,7,16,4); ctx.fill();       // plano de sombra
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,-11,2,22,18,6); ctx.stroke();
+  ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.moveTo(-2,3); ctx.lineTo(4,3); ctx.lineTo(1,12); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#e04a72'; ctx.beginPath(); ctx.moveTo(0,4); ctx.lineTo(3.4,4); ctx.lineTo(2,11); ctx.closePath(); ctx.fill(); // gravata rosa
+  ctx.fillStyle='#f2cba2'; ctx.beginPath(); ctx.arc(0,-6,9,0,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6; ctx.stroke();
+  ctx.fillStyle='#b0aeaa';                                       // barba cel
   ctx.beginPath(); ctx.arc(2,-3,7.5,-0.5,2.4); ctx.lineTo(0,-3); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='#b9bdc0';                                       // hair back
+  ctx.fillStyle='#a9afb6';                                       // cabelo p/ trás
   ctx.beginPath(); ctx.arc(-1,-8,9,Math.PI*0.75,Math.PI*1.9); ctx.fill();
   ctx.beginPath(); ctx.arc(-1,-11,7,Math.PI,TAU); ctx.fill();
-  ctx.strokeStyle='#26221f'; ctx.lineWidth=1.6;                  // óculos redondos (ponte no topo)
-  ctx.beginPath(); ctx.arc(4,-7,3.6,0,TAU); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(3,-10.3); ctx.quadraticCurveTo(-0.5,-11.4,-4,-10.4); ctx.stroke();
-  if(mood==='cry'){ ctx.fillStyle='#7a2f28'; ctx.beginPath(); ctx.ellipse(6,-1,2.6,2,0,0,TAU); ctx.fill(); }
-  else { ctx.strokeStyle='#8a5a3a'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.arc(5,-2.5,2.6,0.3,2.3); ctx.stroke(); }
+  ctx.fillStyle='#7d838b';                                       // plano escuro atrás
+  ctx.beginPath(); ctx.arc(-3,-9,8,Math.PI*0.75,Math.PI*1.55); ctx.lineTo(-3,-9); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#e7ebee';                                       // brilho anguloso
+  ctx.beginPath(); ctx.moveTo(-6,-15); ctx.lineTo(-1,-17.5); ctx.lineTo(3,-15.5); ctx.lineTo(-1,-14.5); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.9;                        // óculos redondos
+  ctx.beginPath(); ctx.arc(4,-7,3.8,0,TAU); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(3,-10.5); ctx.quadraticCurveTo(-0.5,-11.6,-4,-10.6); ctx.stroke();
+  if(mood==='cry'){ ctx.fillStyle='#5b2a21'; ctx.beginPath(); ctx.ellipse(6,-1,2.6,2,0,0,TAU); ctx.fill();
+    ctx.strokeStyle=CEL; ctx.lineWidth=1; ctx.stroke(); }
+  else { ctx.strokeStyle=CEL; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(5,-2.5,2.6,0.3,2.3); ctx.stroke(); }
   ctx.restore();
 }
 function drawWheelSide(x,y,r){
   ctx.fillStyle='#15151a'; ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
-  ctx.strokeStyle='#3a3a42'; ctx.lineWidth=2; ctx.stroke();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.6; ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=2;   // brilho cel em risco
+  ctx.beginPath(); ctx.arc(x,y,r*0.8,-2.2,-1.4); ctx.stroke();
   ctx.fillStyle='#ffd23f'; ctx.beginPath(); ctx.arc(x,y,r*0.5,0,TAU); ctx.fill();
   ctx.strokeStyle='#8a5a10'; ctx.lineWidth=1.5; ctx.stroke();
   ctx.strokeStyle='#c98a10';
@@ -2535,13 +2572,19 @@ function drawCarSide(x,y,s,broken,t,noDriver,cryFace){
   // shadow
   ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,44,86,10,0,0,TAU); ctx.fill();
   drawWheelSide(-50,28,17); drawWheelSide(48,28,17);
-  // yellow body
-  const bod=ctx.createLinearGradient(0,-16,0,26); bod.addColorStop(0,'#ffdf5e'); bod.addColorStop(1,'#e8a91c');
-  ctx.fillStyle=bod;
+  // carroçaria amarela: cor chapada + plano de sombra angular + tinta
+  ctx.fillStyle='#ffd23f';
   ctx.beginPath();
   ctx.moveTo(-70,22); ctx.lineTo(-72,-2); ctx.quadraticCurveTo(-70,-12,-58,-13);
   ctx.lineTo(20,-13); ctx.quadraticCurveTo(60,-13,74,-4); ctx.lineTo(76,22); ctx.closePath();
-  ctx.fill(); ctx.strokeStyle='#8a5a10'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.save(); ctx.clip();
+  ctx.fillStyle='#ffd23f'; ctx.fillRect(-80,-20,170,50);
+  ctx.fillStyle='#d99416'; ctx.beginPath();          // sombra em baixo (plano duro)
+  ctx.moveTo(-80,10); ctx.lineTo(90,4); ctx.lineTo(90,30); ctx.lineTo(-80,30); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#ffe98c'; ctx.beginPath();          // faixa de luz no topo
+  ctx.moveTo(-64,-12); ctx.lineTo(40,-12); ctx.lineTo(36,-6); ctx.lineTo(-62,-6); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle=CEL; ctx.lineWidth=3; ctx.stroke();
   // grille + headlamp
   ctx.fillStyle='#c3c9cf'; rr(ctx,68,-8,10,28,4); ctx.fill();
   ctx.strokeStyle='#5a6068'; ctx.lineWidth=1;
@@ -2552,13 +2595,16 @@ function drawCarSide(x,y,s,broken,t,noDriver,cryFace){
   // bell on bonnet
   ctx.fillStyle='#f4b41f'; ctx.beginPath(); ctx.arc(40,-16,4,0,TAU); ctx.fill();
   ctx.strokeStyle='#8a5a10'; ctx.stroke();
-  // red fenders + running board
-  ctx.fillStyle='#d92f23'; ctx.strokeStyle='#7a120c'; ctx.lineWidth=2;
+  // guarda-lamas vermelhos + estribo (cel)
+  ctx.fillStyle='#e0342a'; ctx.strokeStyle=CEL; ctx.lineWidth=2.6;
   ctx.beginPath(); ctx.arc(48,26,26,Math.PI*1.02,Math.PI*1.98); ctx.lineTo(74,26); ctx.lineTo(22,26); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.arc(-50,26,26,Math.PI*1.02,Math.PI*1.98); ctx.lineTo(-24,26); ctx.lineTo(-76,26); ctx.closePath(); ctx.fill(); ctx.stroke();
   rr(ctx,-26,20,50,8,4); ctx.fill(); ctx.stroke();
-  // cockpit + windshield + seat
-  ctx.fillStyle='#a8231a'; rr(ctx,-56,-22,34,12,5); ctx.fill(); ctx.strokeStyle='#5f0d08'; ctx.stroke(); // seatback
+  ctx.fillStyle='#ff7d6e'; ctx.lineWidth=0;          // brilho nos guarda-lamas
+  ctx.beginPath(); ctx.arc(48,26,24,Math.PI*1.30,Math.PI*1.62); ctx.lineTo(48,26); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(-50,26,24,Math.PI*1.30,Math.PI*1.62); ctx.lineTo(-50,26); ctx.closePath(); ctx.fill();
+  // cockpit + para-brisas + banco
+  ctx.fillStyle='#a8231a'; rr(ctx,-56,-22,34,12,5); ctx.fill(); ctx.strokeStyle=CEL; ctx.lineWidth=2.2; ctx.stroke(); // encosto
   ctx.strokeStyle='#d9dde2'; ctx.lineWidth=3;
   ctx.beginPath(); ctx.moveTo(24,-13); ctx.lineTo(18,-38); ctx.stroke();
   ctx.fillStyle='rgba(160,210,240,.5)'; ctx.beginPath();
@@ -2594,29 +2640,43 @@ function drawTruckSide(x,y,s,t){
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
   ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,46,100,11,0,0,TAU); ctx.fill();
   for(const wx of [-62,-6,58]) drawWheelSide(wx,32,16);
-  // tank cylinder
-  const tk=ctx.createLinearGradient(0,-30,0,18); tk.addColorStop(0,'#f0f2f4'); tk.addColorStop(0.5,'#c3c9cf'); tk.addColorStop(1,'#8a9098');
-  ctx.fillStyle=tk; rr(ctx,-94,-28,128,48,24); ctx.fill();
-  ctx.strokeStyle='#5a6068'; ctx.lineWidth=2.5; rr(ctx,-94,-28,128,48,24); ctx.stroke();
+  // cisterna (cel: chapada + faixa de luz + plano de sombra + tinta)
+  ctx.fillStyle='#ccd2d8'; rr(ctx,-94,-28,128,48,24); ctx.fill();
+  ctx.save(); rr(ctx,-94,-28,128,48,24); ctx.clip();
+  ctx.fillStyle='#f0f2f4'; ctx.fillRect(-94,-28,128,14);
+  ctx.fillStyle='#8a9098'; ctx.fillRect(-94,8,128,14);
+  ctx.restore();
+  ctx.strokeStyle=CEL; ctx.lineWidth=3; rr(ctx,-94,-28,128,48,24); ctx.stroke();
   ctx.strokeStyle='rgba(90,96,104,.5)'; ctx.lineWidth=1.5;
   for(const bx of [-64,-30,4]){ ctx.beginPath(); ctx.moveTo(bx,-28); ctx.lineTo(bx,20); ctx.stroke(); }
   ctx.fillStyle='#e04338'; ctx.font='900 16px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
   ctx.fillText('⛽ GASOLINA',-30,2);
-  // cab
-  const cb=ctx.createLinearGradient(0,-34,0,30); cb.addColorStop(0,'#e04338'); cb.addColorStop(1,'#8f1210');
-  ctx.fillStyle=cb;
+  // cabina (cel)
   ctx.beginPath(); ctx.moveTo(40,30); ctx.lineTo(40,-34); ctx.lineTo(74,-34); ctx.quadraticCurveTo(88,-32,92,-12);
-  ctx.lineTo(96,30); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle='#5f0d08'; ctx.lineWidth=2.5; ctx.stroke();
-  ctx.fillStyle='rgba(160,210,240,.85)';
+  ctx.lineTo(96,30); ctx.closePath();
+  ctx.fillStyle='#e04338'; ctx.fill();
+  ctx.save(); ctx.clip();
+  ctx.fillStyle='#a81a15'; ctx.fillRect(40,6,60,30);          // plano de sombra
+  ctx.fillStyle='#ff7d6e'; ctx.fillRect(40,-34,44,6);         // faixa de luz
+  ctx.restore();
+  ctx.strokeStyle=CEL; ctx.lineWidth=3; ctx.stroke();
+  ctx.fillStyle='#a8d4f0';
   ctx.beginPath(); ctx.moveTo(58,-30); ctx.lineTo(76,-30); ctx.quadraticCurveTo(84,-28,87,-12); ctx.lineTo(58,-12); ctx.closePath(); ctx.fill();
-  // driver wave
-  ctx.fillStyle='#eec39b'; ctx.beginPath(); ctx.arc(66,-20,6,0,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2; ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.lineWidth=2.4;  // brilho em risco
+  ctx.beginPath(); ctx.moveTo(62,-27); ctx.lineTo(72,-14); ctx.stroke();
+  // condutor a acenar
+  ctx.fillStyle='#f2cba2'; ctx.beginPath(); ctx.arc(66,-20,6,0,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; ctx.stroke();
   ctx.fillStyle='#2c5aa0'; ctx.fillRect(62,-14,10,8);
-  ctx.strokeStyle='#eec39b'; ctx.lineWidth=4;
+  ctx.lineCap='round';
+  ctx.strokeStyle=CEL; ctx.lineWidth=6;
   ctx.beginPath(); ctx.moveTo(60,-14); ctx.lineTo(52,-30+Math.sin((t||0)*6)*3); ctx.stroke();
-  // hose reel
-  ctx.strokeStyle='#26221f'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(-94,0,10,0,TAU); ctx.stroke();
+  ctx.strokeStyle='#f2cba2'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(60,-14); ctx.lineTo(52,-30+Math.sin((t||0)*6)*3); ctx.stroke();
+  ctx.lineCap='butt';
+  // enrolador da mangueira
+  ctx.strokeStyle=CEL; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(-94,0,10,0,TAU); ctx.stroke();
   ctx.restore();
 }
 function drawUniSide(x,y,s,t){
@@ -2633,39 +2693,46 @@ function drawUniSide(x,y,s,t){
   ctx.fillStyle='#c9a54a';
   for(const p of [[-32+gal*6,38],[-12-gal*6,38],[14+gal*6,38],[34-gal*6,38]])
     { ctx.fillRect(p[0]-4,p[1],8,5); }
-  // body
-  const bd=ctx.createLinearGradient(0,-14,0,20); bd.addColorStop(0,'#ffffff'); bd.addColorStop(1,'#d8d9e2');
-  ctx.fillStyle=bd; ctx.beginPath(); ctx.ellipse(0,2,38,18,0,0,TAU); ctx.fill();
-  ctx.strokeStyle='#a7a9b6'; ctx.lineWidth=2; ctx.stroke();
+  // corpo (cel: chapado + plano de sombra + tinta)
+  ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(0,2,38,18,0,0,TAU); ctx.fill();
+  ctx.fillStyle='#d3d5e0';
+  ctx.beginPath(); ctx.ellipse(0,2,38,18,0,0.35,Math.PI-0.35); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.6; ctx.beginPath(); ctx.ellipse(0,2,38,18,0,0,TAU); ctx.stroke();
   // tail
   for(let i=0;i<5;i++){ ctx.strokeStyle=['#f26bb2','#b56bf2','#6bd0f2','#7df2a8','#f2d16b'][i]; ctx.lineWidth=4;
     ctx.beginPath(); ctx.moveTo(-36,-2+i*2);
     ctx.quadraticCurveTo(-52,-6+i*4+gal*3,-60,6+i*5); ctx.stroke(); }
-  // neck + head
-  ctx.fillStyle='#f2f2f7'; ctx.beginPath();
+  // pescoço + cabeça (cel)
+  ctx.fillStyle='#f7f7fb'; ctx.beginPath();
   ctx.moveTo(24,-6); ctx.quadraticCurveTo(34,-26,42,-30); ctx.lineTo(52,-26);
   ctx.quadraticCurveTo(50,-12,36,2); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle='#a7a9b6'; ctx.stroke();
-  ctx.fillStyle='#f2f2f7'; ctx.beginPath(); ctx.ellipse(52,-28,12,8,-0.3,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.4; ctx.stroke();
+  ctx.fillStyle='#f7f7fb'; ctx.beginPath(); ctx.ellipse(52,-28,12,8,-0.3,0,TAU); ctx.fill(); ctx.stroke();
   // muzzle + eye + ear
   ctx.fillStyle='#f5c6dd'; ctx.beginPath(); ctx.ellipse(61,-26,5,4,-0.3,0,TAU); ctx.fill();
   ctx.fillStyle='#26221f'; ctx.beginPath(); ctx.arc(50,-31,2,0,TAU); ctx.fill();
   ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(44,-34); ctx.lineTo(46,-42); ctx.lineTo(50,-34); ctx.closePath(); ctx.fill();
-  // horn
-  const hn=ctx.createLinearGradient(52,-52,56,-34); hn.addColorStop(0,'#fff2b0'); hn.addColorStop(1,'#e8a91c');
-  ctx.fillStyle=hn; ctx.beginPath(); ctx.moveTo(56,-52); ctx.lineTo(50,-36); ctx.lineTo(58,-37); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle='#8a5a10'; ctx.lineWidth=1.5; ctx.stroke();
+  // corno (cel: dois planos + tinta)
+  ctx.fillStyle='#ffd23f'; ctx.beginPath(); ctx.moveTo(56,-52); ctx.lineTo(50,-36); ctx.lineTo(58,-37); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#fff2b0'; ctx.beginPath(); ctx.moveTo(56,-52); ctx.lineTo(53,-42); ctx.lineTo(56,-40); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(56,-52); ctx.lineTo(50,-36); ctx.lineTo(58,-37); ctx.closePath(); ctx.stroke();
   // mane
   for(let i=0;i<5;i++){ ctx.strokeStyle=['#f26bb2','#b56bf2','#6bd0f2','#7df2a8','#f2d16b'][i]; ctx.lineWidth=4;
     ctx.beginPath(); ctx.moveTo(30+i*4,-12-i*4);
     ctx.quadraticCurveTo(22+i*4,-20-i*3+gal*2,28+i*4,-26-i*3); ctx.stroke(); }
-  // Moedas rider, arms up
-  ctx.strokeStyle='#1d3560'; ctx.lineWidth=5;
+  // Moedas em cima, braços no ar (com tinta)
+  ctx.lineCap='round';
+  ctx.strokeStyle=CEL; ctx.lineWidth=8;
   ctx.beginPath(); ctx.moveTo(-8,-22); ctx.lineTo(-20,-40+gal*3); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(4,-22); ctx.lineTo(16,-44-gal*3); ctx.stroke();
-  ctx.fillStyle='#eec39b';
-  ctx.beginPath(); ctx.arc(-21,-43+gal*3,4.5,0,TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(17,-47-gal*3,4.5,0,TAU); ctx.fill();
+  ctx.strokeStyle='#26386f'; ctx.lineWidth=5;
+  ctx.beginPath(); ctx.moveTo(-8,-22); ctx.lineTo(-20,-40+gal*3); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(4,-22); ctx.lineTo(16,-44-gal*3); ctx.stroke();
+  ctx.fillStyle='#f2cba2'; ctx.strokeStyle=CEL; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.arc(-21,-43+gal*3,4.5,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(17,-47-gal*3,4.5,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.lineCap='butt';
   drawMoedasHeadSide(-2,-30,1.7,'smile');
   ctx.restore();
 }
@@ -2683,12 +2750,18 @@ function drawBikeSide(x,y,s,slump,v,opts){
       continue;
     }
     ctx.fillStyle='#1b1b20'; ctx.beginPath(); ctx.arc(wx,18,13,0,TAU); ctx.fill();
+    ctx.strokeStyle=CEL; ctx.lineWidth=2.2; ctx.stroke();
     ctx.strokeStyle='#4a4a52'; ctx.lineWidth=1.5;
     for(let a=0;a<6;a++){ const an=a/6*TAU; ctx.beginPath(); ctx.moveTo(wx,18); ctx.lineTo(wx+Math.cos(an)*11,18+Math.sin(an)*11); ctx.stroke(); }
     ctx.strokeStyle='#79b52d'; ctx.lineWidth=3.5;
     ctx.beginPath(); ctx.arc(wx,18,14,Math.PI*1.1,Math.PI*1.9); ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1.6;   // brilho cel
+    ctx.beginPath(); ctx.arc(wx,18,9,-2.3,-1.5); ctx.stroke();
   }
-  // step-through frame (Gira grey/green)
+  // quadro de entrada baixa (Gira cinza/verde)
+  ctx.strokeStyle=CEL; ctx.lineWidth=6;
+  ctx.beginPath(); ctx.moveTo(-24,18); ctx.lineTo(-6,2); ctx.lineTo(18,8); ctx.lineTo(24,18); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(20,-6); ctx.lineTo(24,18); ctx.stroke();
   ctx.strokeStyle='#c8ccd0'; ctx.lineWidth=4;
   ctx.beginPath(); ctx.moveTo(-24,18); ctx.lineTo(-6,2); ctx.lineTo(18,8); ctx.lineTo(24,18); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(20,-6); ctx.lineTo(24,18); ctx.stroke();
@@ -2701,22 +2774,30 @@ function drawBikeSide(x,y,s,slump,v,opts){
   // rider
   if(!noRider){
     const sl=slump?1:0;
-    ctx.fillStyle=jacket;
-    ctx.beginPath(); ctx.ellipse(-2,-14+sl*6,8,11,0.3+sl*0.5,0,TAU); ctx.fill();
-    ctx.fillStyle='#eec39b'; ctx.beginPath(); ctx.arc(6,-24+sl*10,6,0,TAU); ctx.fill();
+    ctx.fillStyle=jacket; ctx.strokeStyle=CEL; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(-2,-14+sl*6,8,11,0.3+sl*0.5,0,TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#f2cba2'; ctx.beginPath(); ctx.arc(6,-24+sl*10,6,0,TAU); ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.14)';
+    ctx.beginPath(); ctx.arc(6,-24+sl*10,6,-1.1,1.1); ctx.lineTo(6,-24+sl*10); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle=CEL; ctx.lineWidth=1.8; ctx.beginPath(); ctx.arc(6,-24+sl*10,6,0,TAU); ctx.stroke();
     ctx.fillStyle=hair; ctx.beginPath(); ctx.arc(5,-27+sl*10,5.5,Math.PI,TAU); ctx.fill();
     // cartaz de protesto às costas
     if(v!=null && !slump){
       ctx.save(); ctx.translate(-16,-30); ctx.rotate(-0.1+v*0.05);
       ctx.fillStyle='#7a6a4c'; ctx.fillRect(-1,4,2,12);
       ctx.fillStyle='#d9c69a'; rr(ctx,-11,-9,22,14,2); ctx.fill();
-      ctx.strokeStyle='#8a774f'; ctx.lineWidth=1.5; rr(ctx,-11,-9,22,14,2); ctx.stroke();
-      ctx.strokeStyle='#4a3a20'; ctx.lineWidth=1.2;
+      ctx.fillStyle='#bda878'; ctx.fillRect(-11,-1,22,6);          // plano de sombra
+      ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,-11,-9,22,14,2); ctx.stroke();
+      ctx.strokeStyle=CEL; ctx.lineWidth=1.2;
       ctx.beginPath(); ctx.moveTo(-7,-4); ctx.lineTo(7,-4); ctx.moveTo(-7,0); ctx.lineTo(5,0); ctx.stroke();
       ctx.restore();
     }
-    ctx.strokeStyle='#eec39b'; ctx.lineWidth=3.5;
+    ctx.lineCap='round';
+    ctx.strokeStyle=CEL; ctx.lineWidth=5.5;
     ctx.beginPath(); ctx.moveTo(2,-12+sl*6); ctx.lineTo(15,-8); ctx.stroke();
+    ctx.strokeStyle='#f2cba2'; ctx.lineWidth=3.5;
+    ctx.beginPath(); ctx.moveTo(2,-12+sl*6); ctx.lineTo(15,-8); ctx.stroke();
+    ctx.lineCap='butt';
     if(slump){ // sweat drops
       ctx.fillStyle='#5db4e6';
       ctx.beginPath(); ctx.arc(12,-26,2,0,TAU); ctx.fill();
@@ -2734,7 +2815,7 @@ function drawMoedasFig(x,y,s,pose,t,face){
   ctx.translate(0,-jump);
   const kick = pose==='kick'? Math.max(0,Math.sin(t*9)) : 0;
   // pernas
-  ctx.strokeStyle='#1a2c4a'; ctx.lineWidth=7; ctx.lineCap='round';
+  ctx.strokeStyle='#22375c'; ctx.lineWidth=9; ctx.lineCap='round';
   ctx.fillStyle='#14161c';
   if(pose==='jump'){
     ctx.beginPath(); ctx.moveTo(-4,-26); ctx.lineTo(-9,-8); ctx.stroke();
@@ -2764,8 +2845,8 @@ function drawMoedasFig(x,y,s,pose,t,face){
   // busto (fato + cabeça)
   drawMoedasHeadSide(0,-44,1.5, pose==='jump'?'smile':(pose==='stand'?'smile':'cry'));
   // braços
-  ctx.strokeStyle='#22375c'; ctx.lineWidth=6;
-  ctx.fillStyle='#eec39b';
+  ctx.strokeStyle='#26386f'; ctx.lineWidth=7;
+  ctx.fillStyle='#f2cba2';
   if(pose==='jump'){
     const w2=Math.sin(t*12)*5;
     ctx.beginPath(); ctx.moveTo(-9,-38); ctx.lineTo(-19,-62+w2); ctx.stroke();
@@ -2796,17 +2877,28 @@ function drawMover(x,y,s,v,t){
   const hop=Math.abs(Math.sin(t*4+v))*3;
   ctx.translate(0,-hop);
   const cols=['#5a6b2f','#4a5a8f','#8f5a4a','#7a4a8f','#4a8f7a'];
-  ctx.fillStyle='#2c3a55'; ctx.fillRect(-6,18,5,12); ctx.fillRect(1,18,5,12);
+  ctx.strokeStyle=CEL;
+  ctx.fillStyle='#33456a'; ctx.lineWidth=1.6;
+  ctx.fillRect(-6,18,5,12); ctx.strokeRect(-6,18,5,12);
+  ctx.fillRect(1,18,5,12);  ctx.strokeRect(1,18,5,12);
   ctx.fillStyle=cols[v%5]; rr(ctx,-8,-2,16,22,5); ctx.fill();
+  ctx.save(); rr(ctx,-8,-2,16,22,5); ctx.clip();            // plano de sombra cel
+  ctx.fillStyle='rgba(0,0,0,.22)'; ctx.fillRect(3,-2,5,22); ctx.restore();
+  ctx.lineWidth=1.8; rr(ctx,-8,-2,16,22,5); ctx.stroke();
   ctx.fillStyle=PROT_SKIN[v%4]; ctx.beginPath(); ctx.arc(0,-9,7,0,TAU); ctx.fill();
-  if(v%5===2){ ctx.fillStyle='#d8dadc'; ctx.beginPath(); ctx.arc(0,-12,6.5,Math.PI,TAU); ctx.fill(); } // elderly grey hair
+  ctx.fillStyle='rgba(0,0,0,.13)';
+  ctx.beginPath(); ctx.arc(0,-9,7,-1.15,1.15); ctx.lineTo(0,-9); ctx.closePath(); ctx.fill();
+  ctx.lineWidth=1.8; ctx.beginPath(); ctx.arc(0,-9,7,0,TAU); ctx.stroke();
+  if(v%5===2){ ctx.fillStyle='#d3d6d9'; ctx.beginPath(); ctx.arc(0,-12,6.5,Math.PI,TAU); ctx.fill(); } // cabelo grisalho
   else { ctx.fillStyle='#3a2a1a'; ctx.beginPath(); ctx.arc(0,-11,6.5,Math.PI,TAU); ctx.fill(); }
-  ctx.fillStyle='#2e2118'; ctx.beginPath(); ctx.arc(-2.5,-9,1,0,TAU); ctx.fill(); ctx.beginPath(); ctx.arc(2.5,-9,1,0,TAU); ctx.fill();
-  ctx.strokeStyle='#7a2f28'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(0,-6,3,0.3,2.8); ctx.stroke(); // smile
-  if(v%5===2){ ctx.strokeStyle='#8a6a3a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(9,4); ctx.lineTo(11,28); ctx.stroke(); } // cane
-  else if(v%2===0){ ctx.fillStyle='#b8934e'; rr(ctx,-11,0,12,10,2); ctx.fill();
-    ctx.strokeStyle='#8a6a3a'; ctx.lineWidth=1; rr(ctx,-11,0,12,10,2); ctx.stroke(); } // box
-  else { ctx.fillStyle='#8f3a3a'; rr(ctx,7,8,8,12,2); ctx.fill(); } // suitcase
+  ctx.fillStyle=CEL; ctx.beginPath(); ctx.arc(-2.5,-9,1.1,0,TAU); ctx.fill(); ctx.beginPath(); ctx.arc(2.5,-9,1.1,0,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6; ctx.beginPath(); ctx.arc(0,-6,3,0.3,2.8); ctx.stroke(); // sorriso
+  if(v%5===2){ ctx.strokeStyle=CEL; ctx.lineWidth=2.2; ctx.beginPath(); ctx.moveTo(9,4); ctx.lineTo(11,28); ctx.stroke(); } // bengala
+  else if(v%2===0){ ctx.fillStyle='#c49b52'; rr(ctx,-11,0,12,10,2); ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.2)'; ctx.fillRect(-11,6,12,4);
+    ctx.strokeStyle=CEL; ctx.lineWidth=1.6; rr(ctx,-11,0,12,10,2); ctx.stroke(); } // caixa
+  else { ctx.fillStyle='#9a4040'; rr(ctx,7,8,8,12,2); ctx.fill();
+    ctx.strokeStyle=CEL; ctx.lineWidth=1.6; rr(ctx,7,8,8,12,2); ctx.stroke(); } // mala
   ctx.restore();
 }
 function cryingMoedas(cx,cy,s){
