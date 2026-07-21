@@ -1344,9 +1344,9 @@ function isSolid(feat){ return feat && (feat.type==='building' || (feat.type==='
 let player, moedas, lisboetas, playerSide, camY, camX=0;
 let plotsSaved, plotsSold, plotsDone, moedasUnicorn;
 let hotelsBuilt, condosBuilt;
-// cada terreno salvo dá habitação a preços acessíveis a 50 pessoas
-const PEOPLE_PER_PLOT = 50;
-const peopleHoused = ()=> plotsSaved*PEOPLE_PER_PLOT;
+// cada terreno salvo dá habitação a preços acessíveis a 50 famílias
+const FAMILIES_PER_PLOT = 50;
+const familiesHoused = ()=> plotsSaved*FAMILIES_PER_PLOT;
 const luxCount = ()=> hotelsBuilt+condosBuilt;
 function makeMoedas(isPlayer){
   return {kind:'moedas', x:colX(2)+CELL_W/2, y:120, ang:-Math.PI/2, isPlayer, speed:0, gas:1, unicorn:false};
@@ -2068,10 +2068,10 @@ function drawHUD(){
 // Resultado do lado do jogador, em destaque por baixo da barra do HUD.
 function drawPlayerStat(){
   const isM = playerSide==='moedas';
-  const n = isM ? luxCount() : peopleHoused();
+  const n = isM ? luxCount() : familiesHoused();
   const txt = isM
     ? '🏨 '+n+' '+(n===1?'Empreendimento de Luxo':'Empreendimentos de Luxo')
-    : '🏠 '+n+' '+(n===1?'pessoa alojada':'pessoas alojadas');
+    : '🏠 '+n+' '+(n===1?'família alojada':'famílias alojadas');
   ctx.font='900 13px "Arial Black", Impact, sans-serif'; ctx.textAlign='left';
   const pad=9, bw=ctx.measureText(txt).width+pad*2, bh=24;
   const x=14+SAFE.l, y=58+SAFE.t+8;
@@ -2562,13 +2562,19 @@ function drawUniSide(x,y,s,t){
   drawMoedasHeadSide(-2,-30,1.7,'smile');
   ctx.restore();
 }
-function drawBikeSide(x,y,s,slump,v){
+function drawBikeSide(x,y,s,slump,v,opts){
+  const noRider = !!(opts&&opts.noRider), noWheel = opts&&opts.noWheel;
   const jacket = v==null ? '#5a6b2f' : BIKE_JACKETS[v%5];
   const hair   = v==null ? '#2c2c30' : BIKE_HAIR[v%5];
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
   ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,30,40,6,0,0,TAU); ctx.fill();
   // wheels
   for(const wx of [-24,24]){
+    if(noWheel===(wx<0?'tras':'frente')){   // roda em falta: fica só o garfo nu
+      ctx.strokeStyle='#c8ccd0'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(wx-4,18); ctx.lineTo(wx+4,18); ctx.stroke();
+      continue;
+    }
     ctx.fillStyle='#1b1b20'; ctx.beginPath(); ctx.arc(wx,18,13,0,TAU); ctx.fill();
     ctx.strokeStyle='#4a4a52'; ctx.lineWidth=1.5;
     for(let a=0;a<6;a++){ const an=a/6*TAU; ctx.beginPath(); ctx.moveTo(wx,18); ctx.lineTo(wx+Math.cos(an)*11,18+Math.sin(an)*11); ctx.stroke(); }
@@ -2586,27 +2592,29 @@ function drawBikeSide(x,y,s,slump,v){
   ctx.beginPath(); ctx.moveTo(20,-6); ctx.lineTo(14,-10); ctx.stroke();
   ctx.fillStyle='#26221f'; rr(ctx,-12,-10,12,4,2); ctx.fill();
   // rider
-  const sl=slump?1:0;
-  ctx.fillStyle=jacket;
-  ctx.beginPath(); ctx.ellipse(-2,-14+sl*6,8,11,0.3+sl*0.5,0,TAU); ctx.fill();
-  ctx.fillStyle='#eec39b'; ctx.beginPath(); ctx.arc(6,-24+sl*10,6,0,TAU); ctx.fill();
-  ctx.fillStyle=hair; ctx.beginPath(); ctx.arc(5,-27+sl*10,5.5,Math.PI,TAU); ctx.fill();
-  // cartaz de protesto às costas
-  if(v!=null && !slump){
-    ctx.save(); ctx.translate(-16,-30); ctx.rotate(-0.1+v*0.05);
-    ctx.fillStyle='#7a6a4c'; ctx.fillRect(-1,4,2,12);
-    ctx.fillStyle='#d9c69a'; rr(ctx,-11,-9,22,14,2); ctx.fill();
-    ctx.strokeStyle='#8a774f'; ctx.lineWidth=1.5; rr(ctx,-11,-9,22,14,2); ctx.stroke();
-    ctx.strokeStyle='#4a3a20'; ctx.lineWidth=1.2;
-    ctx.beginPath(); ctx.moveTo(-7,-4); ctx.lineTo(7,-4); ctx.moveTo(-7,0); ctx.lineTo(5,0); ctx.stroke();
-    ctx.restore();
+  if(!noRider){
+    const sl=slump?1:0;
+    ctx.fillStyle=jacket;
+    ctx.beginPath(); ctx.ellipse(-2,-14+sl*6,8,11,0.3+sl*0.5,0,TAU); ctx.fill();
+    ctx.fillStyle='#eec39b'; ctx.beginPath(); ctx.arc(6,-24+sl*10,6,0,TAU); ctx.fill();
+    ctx.fillStyle=hair; ctx.beginPath(); ctx.arc(5,-27+sl*10,5.5,Math.PI,TAU); ctx.fill();
+    // cartaz de protesto às costas
+    if(v!=null && !slump){
+      ctx.save(); ctx.translate(-16,-30); ctx.rotate(-0.1+v*0.05);
+      ctx.fillStyle='#7a6a4c'; ctx.fillRect(-1,4,2,12);
+      ctx.fillStyle='#d9c69a'; rr(ctx,-11,-9,22,14,2); ctx.fill();
+      ctx.strokeStyle='#8a774f'; ctx.lineWidth=1.5; rr(ctx,-11,-9,22,14,2); ctx.stroke();
+      ctx.strokeStyle='#4a3a20'; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(-7,-4); ctx.lineTo(7,-4); ctx.moveTo(-7,0); ctx.lineTo(5,0); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.strokeStyle='#eec39b'; ctx.lineWidth=3.5;
+    ctx.beginPath(); ctx.moveTo(2,-12+sl*6); ctx.lineTo(15,-8); ctx.stroke();
+    if(slump){ // sweat drops
+      ctx.fillStyle='#5db4e6';
+      ctx.beginPath(); ctx.arc(12,-26,2,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(15,-20,1.6,0,TAU); ctx.fill(); }
   }
-  ctx.strokeStyle='#eec39b'; ctx.lineWidth=3.5;
-  ctx.beginPath(); ctx.moveTo(2,-12+sl*6); ctx.lineTo(15,-8); ctx.stroke();
-  if(slump){ // sweat drops
-    ctx.fillStyle='#5db4e6';
-    ctx.beginPath(); ctx.arc(12,-26,2,0,TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(15,-20,1.6,0,TAU); ctx.fill(); }
   ctx.restore();
 }
 // Moedas de corpo inteiro (vista lateral): pose 'cry' | 'kick' | 'jump' | 'stand'; face=1 direita, -1 esquerda
@@ -2892,8 +2900,9 @@ function cutBrokenDock(p){
     ctx.beginPath(); ctx.ellipse(-4+R()*8,44,14,10+R()*4,R(),0,TAU); ctx.stroke();
     ctx.restore();
   }
-  // fallen bike
-  ctx.save(); ctx.translate(cx+150,cy+52); ctx.rotate(1.35); drawBikeSide(0,0,1.2,false); ctx.restore();
+  // bicicleta abandonada: sem ninguém e com a roda da frente roubada
+  ctx.save(); ctx.translate(cx+150,cy+52); ctx.rotate(1.35);
+  drawBikeSide(0,0,1.2,false,null,{noRider:true,noWheel:'frente'}); ctx.restore();
   // weeds
   ctx.fillStyle='#4a5c33';
   for(let i=0;i<26;i++){ const wx=R()*W, wy=cy+34+R()*(H-cy-40);
@@ -3104,17 +3113,29 @@ function cutUnicorn(p){
   ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=2;
   for(let i=1;i<nS;i++){ ctx.beginPath(); ctx.moveTo(4+i*siloW,2); ctx.lineTo(4+i*siloW,50); ctx.stroke(); }
   // motivos coloridos em arco (como na lona real)
+  // motivos confinados à margem esquerda, para não taparem o texto
   const MCOLS=['#e05a8a','#5a8fe0','#e0d05a','#7ae08a','#e08a5a','#b56bf2'];
   const MR=mulberry32(4);
-  for(let i=0;i<9;i++){ const ax=10+MR()*52, ay=13+MR()*26, arw=4+MR()*5;
-    ctx.strokeStyle=MCOLS[i%6]; ctx.lineWidth=2.5;
+  for(let i=0;i<7;i++){ const ax=9+MR()*28, ay=14+MR()*24, arw=3+MR()*4;
+    ctx.strokeStyle=MCOLS[i%6]; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(ax,ay,arw,Math.PI,0);
     ctx.moveTo(ax-arw,ay); ctx.lineTo(ax-arw,ay+arw);
     ctx.moveTo(ax+arw,ay); ctx.lineTo(ax+arw,ay+arw); ctx.stroke(); }
-  ctx.fillStyle='#fff'; ctx.font='900 16px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
-  ctx.fillText('🦄 Fábrica de Unicórnios',banW/2+32,22);
-  ctx.fillStyle='rgba(255,255,255,.65)'; ctx.font='italic 9px Trebuchet MS';
-  ctx.fillText('É só um mito até o tornares realidade.',banW/2+32,39);
+  // texto centrado no espaço à direita dos motivos e ajustado para nunca
+  // transbordar a lona quando ela cai
+  const txtL=52, txtR=banW-10, banCx=(txtL+txtR)/2, banMax=txtR-txtL;
+  ctx.textAlign='center';
+  const banFit=(txt,base,fam)=>{
+    ctx.font=fam.replace('%s',base);
+    const tw=ctx.measureText(txt).width;
+    if(tw>banMax) ctx.font=fam.replace('%s',(base*banMax/tw).toFixed(2));
+  };
+  ctx.fillStyle='#fff';
+  banFit('🦄 Fábrica de Unicórnios',16,'900 %spx "Arial Black", Impact, sans-serif');
+  ctx.fillText('🦄 Fábrica de Unicórnios',banCx,22);
+  ctx.fillStyle='rgba(255,255,255,.65)';
+  banFit('É só um mito até o tornares realidade.',9,'italic %spx Trebuchet MS');
+  ctx.fillText('É só um mito até o tornares realidade.',banCx,39);
   ctx.restore();
   // pilares brancos do portão com esferas
   for(const px2 of [bx-66,bx+66]){
@@ -3249,8 +3270,8 @@ function cutEnd(p){
     const txt = isM
       ? luxCount()+' '+(luxCount()===1?'Empreendimento de Luxo':'Empreendimentos de Luxo')
         +'   ('+hotelsBuilt+' 🏨  ·  '+condosBuilt+' 🏢)'
-      : peopleHoused()+' '+(peopleHoused()===1?'pessoa alojada':'pessoas alojadas')
-        +'   ('+plotsSaved+'/'+TOTAL_PLOTS+' terrenos × '+PEOPLE_PER_PLOT+')';
+      : familiesHoused()+' '+(familiesHoused()===1?'família alojada':'famílias alojadas')
+        +'   ('+plotsSaved+'/'+TOTAL_PLOTS+' terrenos × '+FAMILIES_PER_PLOT+')';
     ctx.font='900 '+Math.min(20,W*0.024)+'px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
     const bw=ctx.measureText(txt).width+34, bh=Math.min(42,H*0.085);
     const bx=W/2-bw/2, by=H*0.79-bh/2;
@@ -3266,8 +3287,8 @@ function cutEnd(p){
 function endInfo(){
   if(playerSide==='lisboetas'){
     if(plotsSaved===0) return {text:'Oh não! O Carlos Moedas conseguiu vender todos os terrenos! Ficaram a perder Lisboa e os Lisboetas.',color:'#e74c3c',cashParty:true};
-    if(plotsSaved===TOTAL_PLOTS) return {text:'Parabéns! Conseguiste travar o Carlos Moedas e dar casa a '+peopleHoused()+' pessoas!',color:'#8fbf3f',fireworks:true};
-    return {text:'Bom, pelo menos conseguiste dar casa a '+peopleHoused()+' pessoas.',color:'#ffd23f'};
+    if(plotsSaved===TOTAL_PLOTS) return {text:'Parabéns! Conseguiste travar o Carlos Moedas e dar casa a '+familiesHoused()+' famílias!',color:'#8fbf3f',fireworks:true};
+    return {text:'Bom, pelo menos conseguiste dar casa a '+familiesHoused()+' famílias.',color:'#ffd23f'};
   } else {
     if(plotsSold===TOTAL_PLOTS) return {text:'Ahah! Travaste essa gentalha reles e construíste '+luxCount()+' Empreendimentos de Luxo para os teus investidores! Parabéns',color:'#ffd23f',fireworks:true,unicornPrance:true};
     if(plotsSold===0) return {text:'Ai que desgraça! Que desgraça! Os meus empreendimentos de luxo foram todos por água abaixo!',color:'#e74c3c',tantrum:true};
