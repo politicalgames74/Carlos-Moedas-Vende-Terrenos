@@ -467,103 +467,83 @@ function paintPortraitR(g,mood){
 }
 const BIKE_JACKETS=['#4a5a8f','#8f3a3a','#5a6b2f','#7a4a8f','#b8762a'];
 const BIKE_HAIR=['#2c2c30','#6b4a2f','#9aa0a6','#1a1a1e','#8f5a2f'];
-
-// ===== pixel-art foundation (chunky-but-detailed / HD-2D 16-bit) =====
-// Sprites drawn on a coarse logical grid, then blitted with smoothing OFF:
-// crisp visible pixels, but dense detail and rich shading ramps.
-function mkPix(pw,ph,fn){
-  const c=document.createElement('canvas'); c.width=pw; c.height=ph;
-  const g=c.getContext('2d'); g.imageSmoothingEnabled=false;
-  fn(g,pw,ph); c.__pix=true; return c;
-}
-function blitPix(dst,img,x,y,w,h){
-  const sm=dst.imageSmoothingEnabled; dst.imageSmoothingEnabled=false;
-  dst.drawImage(img,x,y,w,h); dst.imageSmoothingEnabled=sm;
-}
-// pixel primitives (integer grid)
-function pRect(g,x,y,w,h,c){ g.fillStyle=c; g.fillRect(x|0,y|0,w|0,h|0); }
-function pSet(g,x,y,c){ g.fillStyle=c; g.fillRect(x|0,y|0,1,1); }
-function pHline(g,x,y,w,c){ g.fillStyle=c; g.fillRect(x|0,y|0,w|0,1); }
-function pVline(g,x,y,h,c){ g.fillStyle=c; g.fillRect(x|0,y|0,1,h|0); }
-// checkerboard dither of colour c over a region — blends toward the pixels beneath
-function pDither(g,x,y,w,h,c,inv){ g.fillStyle=c;
-  for(let j=0;j<h;j++) for(let i=0;i<w;i++) if(((i+j)&1)===(inv?1:0)) g.fillRect((x+i)|0,(y+j)|0,1,1); }
-// filled disc on the pixel grid
-function pDisc(g,cx,cy,r,c){ g.fillStyle=c;
-  for(let j=-r;j<=r;j++) for(let i=-r;i<=r;i++) if(i*i+j*j<=r*r+r*0.4) g.fillRect((cx+i)|0,(cy+j)|0,1,1); }
-
-// ---- Lisbon palettes (limited but rich ramps: dark → light) ----
-const PAL={
-  terra:['#5e2a1b','#853721','#b0492b','#cf6338','#ea855a'],   // telha / terracotta
-  cream:['#8f866c','#b7ac8c','#d8cfb0','#efe7cd'],             // calçada / stone
-  azul :['#20456f','#3a6ea8','#7aa6d2','#e9f0f6'],             // azulejo blues + grout
-  court:['#3f5c2a','#5c8038','#7aa64e'],                       // courtyard greenery
-  win  :['#20222c','#3d5570','#8fb6d6'],                       // windows: frame/glass/hi
-  wood :['#5a3c1f','#8a5a2f','#b98a4e'],
-  dark :'#1c150f'                                              // universal ink outline
-};
-// pastéis de fachada (Lisbon facade pastels), pixel ramps [shadow, base, light]
-const FACADE_PX=[
-  ['#c9ab72','#f5d7a0','#fde9c2'],['#c98f80','#f0b8a8','#fad9cf'],
-  ['#8fb0c0','#cfe0e8','#eef5f9'],['#c9b878','#f7e8b0','#fdf4d4'],
-  ['#c08a98','#e8b8c4','#f6dde4'],['#a6c090','#d5e8c8','#eef7e6'],
-  ['#c39866','#f2c898','#fbe4c4'],['#c0b298','#efe0cc','#f8efe0']
-];
 // ================= CITY TILES =================
-// ---- pixel-art Lisbon block (chunky-but-detailed, top-down hip roof) ----
-function mkBuildingPx(v){ return mkPix(64,78,(g)=>{
-  const R=mulberry32(v*77+13);
-  const T=PAL.terra, C=PAL.cream, D=PAL.dark;
-  function diag(x0,y0,x1,y1,c){ g.fillStyle=c; const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));
-    for(let k=0;k<=n;k++) g.fillRect((x0+(x1-x0)*k/n)|0,(y0+(y1-y0)*k/n)|0,1,1); }
-  // ---- calçada portuguesa base (block footprint) ----
-  pRect(g,0,0,64,74,C[1]);
-  pDither(g,0,0,64,74,C[2]);            // light chips
-  pDither(g,0,0,64,74,C[0],true);       // dark chips
-  pRect(g,0,0,64,1,C[0]); pRect(g,0,73,64,1,C[0]); pRect(g,0,0,1,74,C[0]); pRect(g,63,0,1,74,C[0]);
-  g.clearRect(0,0,1,1); g.clearRect(63,0,1,1); g.clearRect(0,73,1,1); g.clearRect(63,73,1,1);
-  // ---- four-sloped terracotta roof ----
-  const rx=4,ry=4,rw=56,rh=54;
-  pRect(g,rx,ry,rw,rh,T[2]);
-  pDither(g,rx,ry,rw,rh>>1,T[3]);              // sun side (upper) lighter
-  pDither(g,rx,ry+(rh>>1),rw,rh>>1,T[1],true); // lower shade
-  pDither(g,rx+(rw>>1),ry,rw>>1,rh,T[1],true); // right shade
-  for(let yy=ry+2; yy<ry+rh-1; yy+=3) pHline(g,rx+1,yy,rw-2,T[1]);   // telha courses
-  pHline(g,rx,ry,rw,T[4]); pVline(g,rx,ry,rh,T[4]);                  // sun-edge highlight
-  pRect(g,rx-1,ry-1,rw+2,1,D); pRect(g,rx-1,ry+rh,rw+2,1,D); pRect(g,rx-1,ry-1,1,rh+2,D); pRect(g,rx+rw,ry-1,1,rh+2,D);
-  // ---- ridge hole = interior courtyard, hip diagonals to its corners ----
-  const ix=18,iy=17,iw=28,ih=26;
-  diag(rx,ry,ix,iy,T[0]); diag(rx+rw-1,ry,ix+iw-1,iy,T[0]);
-  diag(rx,ry+rh-1,ix,iy+ih-1,T[0]); diag(rx+rw-1,ry+rh-1,ix+iw-1,iy+ih-1,T[0]);
-  const paved = v%3!==0;
-  pRect(g,ix,iy,iw,ih, paved?C[1]:PAL.court[0]);
-  if(paved) pDither(g,ix,iy,iw,ih,C[0],true);
-  else { pDither(g,ix,iy,iw,ih,PAL.court[1]);
-    for(let i=0;i<3;i++){ const tx=ix+3+(R()*(iw-6))|0, ty=iy+3+(R()*(ih-6))|0;
-      pDisc(g,tx,ty,3,PAL.court[0]); pDisc(g,tx-1,ty-1,2,PAL.court[2]); } }
-  pRect(g,ix-1,iy-1,iw+2,1,D); pRect(g,ix-1,iy+ih,iw+2,1,D); pRect(g,ix-1,iy-1,1,ih+2,D); pRect(g,ix+iw,iy-1,1,ih+2,D);
-  // ---- lisbon chimneys (light body, dark cap) ----
-  const nCh=3+((R()*2)|0);
-  for(let i=0;i<nCh;i++){ const cx=6+(R()*(rw-8))|0, cy=(R()<0.5? ry+1+R()*8 : ry+rh-6+R()*4)|0;
-    pRect(g,cx,cy,4,4,C[2]); pRect(g,cx,cy,4,1,PAL.wood[0]); pSet(g,cx,cy+3,D); pSet(g,cx+3,cy+3,D); }
-  // ---- rooftop feature by variant ----
-  if(v%4===2){ for(let i=0;i<3;i++){ const ax=rx+3+(R()*(rw-8))|0, ay=ry+3+(R()*(rh-8))|0;
-      pRect(g,ax,ay,5,4,'#c9cdd2'); pRect(g,ax,ay,5,1,'#eef0f2'); pRect(g,ax,ay+3,5,1,D); } }         // ACs
-  else if(v%4===3){ pRect(g,rx+rw-20,ry+3,16,10,PAL.wood[2]);
-      for(let i=0;i<5;i++) pVline(g,rx+rw-19+i*3,ry+3,10,PAL.wood[1]);
-      pDisc(g,rx+rw-17,ry+11,2,PAL.court[1]); pDisc(g,rx+6,ry+rh-6,2,PAL.court[1]); }                  // pérgula
-  else if(v%4===1){ pHline(g,rx+4,ry+8,rw-8,'#9a9488'); const lc=['#d05a5a','#5a8fd0','#e0c85a','#7ad08a'];
-      for(let i=0;i<6;i++) pRect(g,rx+6+i*7,ry+8,3,4,lc[i%4]); }                                       // estendal
-  // ---- south facade (pastel + azulejo + janelas + porta) ----
-  const F=FACADE_PX[v%FACADE_PX.length], fy=62, fh=16;
-  pRect(g,4,fy,56,fh,F[1]); pHline(g,4,fy,56,F[2]); pDither(g,4,fy+fh-5,56,5,F[0]);
-  if(v%4===1) for(let yy=fy+1;yy<fy+fh-4;yy+=3) for(let xx=5;xx<59;xx+=3)
-      pRect(g,xx,yy,2,2, ((xx+yy)&2)?PAL.azul[1]:PAL.azul[2]);
-  for(let i=0;i<5;i++){ const wx=8+i*10, wy=fy+3;
-    pRect(g,wx,wy,5,7,PAL.win[0]); pRect(g,wx+1,wy+1,3,3,PAL.win[2]); pRect(g,wx+1,wy+4,3,2,PAL.win[1]); }
-  pRect(g,30,fy+fh-7,5,7,PAL.wood[0]); pSet(g,33,fy+fh-4,'#d8c060');
-  pRect(g,3,fy-1,58,1,D); pRect(g,3,fy+fh,58,1,D); pRect(g,3,fy-1,1,fh+1,D); pRect(g,60,fy-1,1,fh+1,D);
-}); }
+const ROOFS=[['#c96b4a','#96432c'],['#b85c3e','#8a3e26'],['#d1785a','#a04f36'],['#a85234','#7c3a22'],
+             ['#c26246','#8f4630'],['#bd6a52','#8c4a36'],['#b0563b','#823c27'],['#ca7350','#985238']];
+// pastéis típicos de Lisboa: amarelo, rosa-velho, azul-claro, verde-água, ocre…
+const FACADES=['#f5d7a0','#f0b8a8','#cfe0e8','#f7e8b0','#e8b8c4','#d5e8c8','#f2c898','#efe0cc'];
+function mkBuilding(v){ return mkTile(g=>{
+  tileBase(g);
+  const R=mulberry32(v*77+3);
+  const [roof,dark]=ROOFS[v%ROOFS.length];
+  tileShadow(g,12,12,S-24,S-24,8);
+  // perimeter block roof
+  rr(g,12,12,S-24,S-24,8); g.fillStyle=roof; g.fill();
+  g.strokeStyle=dark; g.lineWidth=2.5; g.stroke();
+  // courtyard
+  const court = v%3===0? '#7f9c5c' : '#948a72';
+  rr(g,54,54,S-108,S-108,6); g.fillStyle=court; g.fill();
+  g.strokeStyle='rgba(0,0,0,.3)'; g.lineWidth=2; g.stroke();
+  // roof ridge
+  g.strokeStyle='rgba(255,235,210,.35)'; g.lineWidth=2; rr(g,33,33,S-66,S-66,7); g.stroke();
+  // telha caneca: fiadas de arcos nas quatro águas
+  g.strokeStyle='rgba(90,40,25,.4)'; g.lineWidth=1.1;
+  for(let yy=18;yy<=48;yy+=7){ for(let xx=18;xx<S-16;xx+=8){        // água norte
+    g.beginPath(); g.arc(xx,yy,3.6,Math.PI,0); g.stroke(); } }
+  for(let yy=S-48;yy<=S-18;yy+=7){ for(let xx=18;xx<S-16;xx+=8){    // água sul
+    g.beginPath(); g.arc(xx,yy,3.6,0,Math.PI); g.stroke(); } }
+  for(let xx=18;xx<=48;xx+=7){ for(let yy=18;yy<S-16;yy+=8){        // água oeste
+    g.beginPath(); g.arc(xx,yy,3.6,Math.PI/2,-Math.PI/2); g.stroke(); } }
+  for(let xx=S-48;xx<=S-18;xx+=7){ for(let yy=18;yy<S-16;yy+=8){    // água este
+    g.beginPath(); g.arc(xx,yy,3.6,-Math.PI/2,Math.PI/2); g.stroke(); } }
+  // tacaniças (linhas diagonais dos cantos)
+  g.strokeStyle=dark; g.lineWidth=2;
+  g.beginPath(); g.moveTo(14,14); g.lineTo(54,54); g.moveTo(S-14,14); g.lineTo(S-54,54);
+  g.moveTo(14,S-14); g.lineTo(54,S-54); g.moveTo(S-14,S-14); g.lineTo(S-54,S-54); g.stroke();
+  // sun-side highlight
+  g.strokeStyle='rgba(255,255,255,.25)'; g.lineWidth=4;
+  g.beginPath(); g.moveTo(16,S-18); g.lineTo(16,16); g.lineTo(S-18,16); g.stroke();
+  // chaminés lisboetas (corpo claro, capelo escuro)
+  for(let i=0;i<4;i++){ const cxp=24+R()*(S-60), cyp=R()<0.5? 20+R()*22 : S-44+R()*20;
+    g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(cxp+2,cyp+2,11,11);
+    g.fillStyle='#efe6d2'; g.fillRect(cxp,cyp,11,11);
+    g.strokeStyle='#a89a80'; g.lineWidth=1; g.strokeRect(cxp,cyp,11,11);
+    g.fillStyle='#8a8274'; g.fillRect(cxp+2.5,cyp+2.5,6,6); }
+  // detalhes por variante
+  if(v%4===0){ // pátio com árvores + depósito de água no telhado
+    for(let i=0;i<3;i++){ const tx=64+R()*(S-128), ty=64+R()*(S-128);
+      g.fillStyle='rgba(0,0,0,.2)'; g.beginPath(); g.arc(tx+3,ty+3,10,0,TAU); g.fill();
+      g.fillStyle='#4f7a3a'; g.beginPath(); g.arc(tx,ty,10,0,TAU); g.fill();
+      g.fillStyle='#6e9a52'; g.beginPath(); g.arc(tx-3,ty-3,6,0,TAU); g.fill(); }
+    g.fillStyle='rgba(0,0,0,.25)'; g.beginPath(); g.arc(S-32,S-32,9,0,TAU); g.fill();
+    g.fillStyle='#b8bec6'; g.beginPath(); g.arc(S-34,S-34,9,0,TAU); g.fill();
+    g.strokeStyle='#70767e'; g.lineWidth=1.5; g.stroke();
+  } else if(v%4===1){ // estendais no pátio (fachada de azulejos)
+    g.strokeStyle='#777'; g.lineWidth=1;
+    g.beginPath(); g.moveTo(60,70); g.lineTo(S-60,84); g.stroke();
+    g.beginPath(); g.moveTo(60,104); g.lineTo(S-60,116); g.stroke();
+    const cols=['#e05a5a','#5a8fe0','#e0d05a','#7ae08a','#e08ae0'];
+    for(let i=0;i<5;i++){ g.fillStyle=cols[i]; g.fillRect(66+i*13,71+i*1.4,8,10); }
+    for(let i=0;i<5;i++){ g.fillStyle=cols[(i+2)%5]; g.fillRect(70+i*13,105+i*1.2,8,9); }
+  } else if(v%4===2){ // ACs, claraboias e antena parabólica
+    g.fillStyle='#c9cdd2';
+    for(let i=0;i<4;i++){ g.fillRect(62+R()*(S-134),62+R()*(S-134),11,8); }
+    g.fillStyle='rgba(160,210,240,.8)'; g.fillRect(70,S-84,18,12); g.fillRect(S-92,68,18,12);
+    g.fillStyle='#e6e9ec'; g.beginPath(); g.ellipse(34,S-34,7,5,0.6,0,TAU); g.fill();
+    g.strokeStyle='#8a9098'; g.lineWidth=1; g.stroke();
+    g.fillStyle='#5a6068'; g.beginPath(); g.arc(36,S-36,1.6,0,TAU); g.fill();
+  } else { // terraço no telhado com pérgula e vasos
+    g.fillStyle='#c8a878'; rr(g,S-86,20,64,36,4); g.fill();
+    g.strokeStyle='#9a7a4c'; g.lineWidth=1.5; rr(g,S-86,20,64,36,4); g.stroke();
+    g.strokeStyle='rgba(122,90,53,.7)';
+    for(let i=0;i<5;i++){ g.beginPath(); g.moveTo(S-82+i*14,22); g.lineTo(S-82+i*14,54); g.stroke(); }
+    g.fillStyle='#4f7a3a';
+    g.beginPath(); g.arc(S-78,50,5,0,TAU); g.fill();
+    g.beginPath(); g.arc(S-30,26,5,0,TAU); g.fill();
+  }
+  // fachada sul: pastel de Lisboa; algumas (v par múltiplo de 4+1) com azulejos
+  wallBand(g,16,S-32,S-15,30,FACADES[v%FACADES.length], v%4===1);
+});}
 function mkGarden(){ return mkTile(g=>{
   tileBase(g);
   // lawn with mow stripes
@@ -1138,40 +1118,12 @@ function paintLisbonFlag(g,w,h){
   }
   g.restore();
 }
-// ---- pixel-art rear car (Noddy, a subir; topo = frente), condutor embutido ----
-function mkCarRearPx(){ return mkPix(30,36,(g)=>{
-  const D=PAL.dark;
-  const RED=['#6f1109','#b3271b','#d92f23','#f2574a'];
-  const YEL=['#9a6a0e','#d99a18','#ffdf5e','#fff2ac'];
-  const HAIR=['#8b9199','#c2c6cb','#edf0f3'], NAVY=['#12233f','#22375c','#3a5a92'];
-  pDither(g,4,33,22,3,'rgba(0,0,0,.45)');                              // sombra
-  pRect(g,3,20,4,12,'#141419'); pRect(g,23,20,4,12,'#141419');        // rodas
-  pVline(g,3,20,12,'#3a3a42'); pVline(g,23,20,12,'#3a3a42');
-  pRect(g,4,8,4,18,RED[1]); pRect(g,22,8,4,18,RED[1]);                // guarda-lamas
-  pVline(g,4,8,18,RED[0]); pVline(g,25,8,18,RED[0]); pVline(g,5,8,18,RED[3]);
-  pRect(g,7,2,16,28,YEL[2]);                                          // corpo
-  pRect(g,7,2,3,28,YEL[1]); pRect(g,20,2,3,28,YEL[1]);
-  pVline(g,7,3,26,YEL[0]); pVline(g,22,3,26,YEL[0]); pRect(g,9,2,6,2,YEL[3]);
-  pSet(g,7,2,YEL[1]); pSet(g,22,2,YEL[1]); pSet(g,7,29,YEL[1]); pSet(g,22,29,YEL[1]);
-  pRect(g,6,1,17,1,D); pRect(g,6,30,17,1,D); pRect(g,6,1,1,30,D); pRect(g,22,1,1,30,D);
-  pRect(g,6,29,18,2,'#c6cace'); pHline(g,6,29,18,'#eef0f2');          // para-choques
-  pRect(g,8,28,2,2,RED[3]); pRect(g,20,28,2,2,RED[3]);                // faróis traseiros
-  pRect(g,14,0,2,2,'#f4b41f');                                        // sino
-  pRect(g,10,13,10,12,RED[0]); pRect(g,11,14,8,3,RED[1]);             // cockpit
-  pRect(g,10,22,10,3,'#5a0f08');                                      // banco
-  pRect(g,11,17,8,5,NAVY[1]); pVline(g,15,17,5,NAVY[0]); pHline(g,11,17,8,NAVY[2]); // ombros
-  pRect(g,14,13,2,3,'#e0b088');                                       // pescoço
-  pDisc(g,15,10,4,HAIR[0]); pDisc(g,14,9,3,HAIR[1]); pRect(g,13,9,5,1,HAIR[2]);     // cabelo grisalho
-  pSet(g,11,10,'#e0b088'); pSet(g,19,10,'#e0b088');                   // orelhas
-}); }
-// build all sprites once
 const SPR={}, TILE={};
 function buildSprites(){
-  SPR.carRearPx=mkCarRearPx();
   SPR.portraitSmile=mkCanvas(220,300,g=>paintPortraitR(g,'smile'));
   SPR.portraitCry=mkCanvas(220,300,g=>paintPortraitR(g,'cry'));
   SPR.flag=mkCanvas(180,120,g=>paintLisbonFlag(g,180,120));
-  TILE.bld=[0,1,2,3,4,5,6,7].map(mkBuildingPx);
+  TILE.bld=[0,1,2,3,4,5,6,7].map(mkBuilding);
   TILE.garden=mkGarden();
   TILE.gas=mkGas();
   TILE.gira=mkGira(false);
@@ -1847,6 +1799,11 @@ function faceOf(ent){
   return ent.face||1;
 }
 // ---------- frames verticais (a subir): vistas traseiras ----------
+function drawWheelBack(x,y){
+  ctx.fillStyle='#15151a'; rr(ctx,x-8,y-24,16,48,6); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.12)'; rr(ctx,x-8,y-24,5,48,3); ctx.fill();
+  ctx.fillStyle='#f2c400'; ctx.beginPath(); ctx.arc(x,y,4,0,TAU); ctx.fill();
+}
 function drawMoedasBack(x,y,s){   // cabeça e ombros de costas (cabelo grisalho)
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
   ctx.fillStyle='#22375c'; rr(ctx,-15,0,30,16,6); ctx.fill();
@@ -1862,8 +1819,28 @@ function drawMoedasBack(x,y,s){   // cabeça e ombros de costas (cabelo grisalho
   ctx.beginPath(); ctx.moveTo(0,-19); ctx.lineTo(0,-2); ctx.stroke();
   ctx.restore();
 }
-function drawCarRear(){   // carro Noddy de trás (a subir); topo = frente — sprite pixel-art
-  blitPix(ctx, SPR.carRearPx, -62, -66, 124, 132);
+function drawCarRear(){   // carro Noddy de trás (a subir); topo = frente
+  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,64,56,12,0,0,TAU); ctx.fill();
+  drawWheelBack(-54,26); drawWheelBack(54,26);
+  ctx.fillStyle='#d92f23'; ctx.strokeStyle='#7a120c'; ctx.lineWidth=2;
+  rr(ctx,-62,6,22,50,9); ctx.fill(); ctx.stroke();
+  rr(ctx,40,6,22,50,9); ctx.fill(); ctx.stroke();
+  const bod=ctx.createLinearGradient(-44,0,44,0);
+  bod.addColorStop(0,'#e0a018'); bod.addColorStop(0.5,'#ffdf5e'); bod.addColorStop(1,'#e0a018');
+  ctx.fillStyle=bod;
+  ctx.beginPath();
+  ctx.moveTo(-34,-60); ctx.lineTo(34,-60); ctx.quadraticCurveTo(48,-60,48,-30);
+  ctx.lineTo(48,48); ctx.quadraticCurveTo(48,60,34,60); ctx.lineTo(-34,60);
+  ctx.quadraticCurveTo(-48,60,-48,48); ctx.lineTo(-48,-30); ctx.quadraticCurveTo(-48,-60,-34,-60);
+  ctx.closePath(); ctx.fill(); ctx.strokeStyle='#8a5a10'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#d9dde2'; rr(ctx,-42,55,84,7,3); ctx.fill();               // para-choques
+  ctx.fillStyle='#c0392b';                                                  // faróis traseiros
+  ctx.beginPath(); ctx.arc(-32,51,5,0,TAU); ctx.fill(); ctx.beginPath(); ctx.arc(32,51,5,0,TAU); ctx.fill();
+  ctx.fillStyle='#a8231a'; rr(ctx,-32,-8,64,40,12); ctx.fill();             // cockpit
+  ctx.fillStyle='#7a150e'; rr(ctx,-28,18,56,12,5); ctx.fill();             // banco
+  drawMoedasBack(0,4,1.6);
+  ctx.fillStyle='#f4b41f'; ctx.beginPath(); ctx.arc(0,-50,4.5,0,TAU); ctx.fill();  // sino
+  ctx.strokeStyle='#8a5a10'; ctx.lineWidth=1.5; ctx.stroke();
 }
 function drawUniRear(t){   // unicórnio de trás; cauda arco-íris a cair para o observador
   const gal=Math.sin(t*9);
