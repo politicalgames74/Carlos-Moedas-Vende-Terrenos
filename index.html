@@ -29,16 +29,42 @@
 (() => {
 "use strict";
 const cv = document.getElementById('game');
-const ctx = cv.getContext('2d');
+let ctx = cv.getContext('2d');       // aponta para o alvo de desenho corrente
+const MCTX = ctx;                    // contexto real do ecrã
 let W = 0, H = 0, DPR = 1;
 let SAFE = {t:0,r:0,b:0,l:0};   // insets de safe-area (declarado antes do 1º resize)
+// ---- passagem lo-fi (pixelização global, estilo HD-2D) ----
+// A cena inteira é desenhada numa resolução virtual (~metade) e ampliada com
+// nearest-neighbour: pixels nítidos e uniformes em todo o mundo, entidades e
+// cutscenes. O HUD e o texto desenham-se depois, à resolução total (crisp()).
+const LOFI = document.createElement('canvas');
+const LCTX = LOFI.getContext('2d');
+let PIXD = 2;                        // divisor da resolução virtual
+let inLofi = false; const crispQ = [];
+function crisp(fn){ if(inLofi) crispQ.push(fn); else fn(); }
+function lofiBegin(){
+  inLofi = true; ctx = LCTX;
+  ctx.setTransform(1/PIXD,0,0,1/PIXD,0,0);
+  ctx.clearRect(0,0,W,H);
+}
+function lofiEnd(){
+  inLofi = false; ctx = MCTX;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(LOFI, 0,0,LOFI.width,LOFI.height, 0,0,W,H);
+  ctx.imageSmoothingEnabled = true;
+  for(const fn of crispQ) fn();
+  crispQ.length = 0;
+}
 function resize(){
   DPR = Math.min(2, window.devicePixelRatio||1);
   W = window.innerWidth || document.documentElement.clientWidth || 1280;
   H = window.innerHeight || document.documentElement.clientHeight || 720;
   cv.width = W*DPR; cv.height = H*DPR;
   cv.style.width = W+'px'; cv.style.height = H+'px';
-  ctx.setTransform(DPR,0,0,DPR,0,0);
+  MCTX.setTransform(DPR,0,0,DPR,0,0);
+  PIXD = W>=1000 ? 2 : 1.5;          // ecrãs pequenos: grelha mais fina p/ legibilidade
+  LOFI.width  = Math.ceil(W/PIXD);
+  LOFI.height = Math.ceil(H/PIXD);
   if(typeof readSafe==='function') readSafe();
 }
 window.addEventListener('resize', resize);
@@ -1281,9 +1307,9 @@ function nearestPlot(ent){
     if(d<bd){bd=d;best=p;} }
   return best;
 }
-function stepAI(ent, dt, spd){
+function stepAI(ent, dt, spd, acc){
   const tgt=nearestPlot(ent);
-  if(!tgt) return;
+  if(!tgt){ ent.speed=0; return; }
   let ang=Math.atan2(tgt.y-ent.y, tgt.x-ent.x);
   const probeX=ent.x+Math.cos(ang)*(PLAYER_R+16);
   const probeY=ent.y+Math.sin(ang)*(PLAYER_R+16);
@@ -1293,9 +1319,17 @@ function stepAI(ent, dt, spd){
     ang += (Math.sin(ent.y*0.01 + performance.now()*0.0016)>0 ? 0.9 : -0.9);
   }
   ent.ang=ang;
-  ent.x+=Math.cos(ang)*spd*dt;
-  ent.y+=Math.sin(ang)*spd*dt;
+  if(acc>0){                       // rampa: leva tempo a chegar ao topo
+    if(!(ent.speed>=0)) ent.speed=0;
+    ent.speed = ent.speed<spd ? Math.min(spd, ent.speed+acc*dt)
+                              : Math.max(spd, ent.speed-acc*1.6*dt);
+  } else ent.speed=spd;
+  const px=ent.x, py=ent.y;
+  ent.x+=Math.cos(ang)*ent.speed*dt;
+  ent.y+=Math.sin(ang)*ent.speed*dt;
   collideSlide(ent);
+  // encontrão contra um prédio custa balanço: tem de voltar a acelerar
+  if(acc>0 && Math.hypot(ent.x-px, ent.y-py) < ent.speed*dt*0.4) ent.speed*=0.5;
 }
 function pointSolid(x,y){
   if(x<RIVER_W+6||x>WORLD_W-6) return true;
@@ -1399,7 +1433,8 @@ function drawScene(){
   drawWorld();
   if(playerSide==='moedas'){ drawLisboetasEnt(lisboetas); drawMoedasEnt(moedas); }
   else { drawMoedasEnt(moedas); drawLisboetasEnt(lisboetas); }
-  drawParticles(); drawOppMarker(); drawHUD();
+  drawParticles();
+  crisp(()=>{ drawOppMarker(); drawHUD(); });   // UI nítida sobre o mundo pixelizado
 }
 // Chapa na berma do ecrã quando o adversário sai do enquadramento: aponta
 // para ele e diz a que distância vai, para a corrida se perceber sem o ver.
@@ -1434,15 +1469,18 @@ function drawOppMarker(){
 // ---------- controlos táteis (botão de pausa + joystick) ----------
 function drawPauseBtn(){
   if(!IS_TOUCH) return;
+ crisp(()=>{
   const b=pauseBtnRect();
   ctx.fillStyle='rgba(10,13,24,.62)'; rr(ctx,b.x,b.y,b.w,b.h,10); ctx.fill();
   ctx.strokeStyle='rgba(240,220,160,.55)'; ctx.lineWidth=2; rr(ctx,b.x,b.y,b.w,b.h,10); ctx.stroke();
   ctx.fillStyle='#f4ecd7';
   const cx=b.x+b.w/2, cy=b.y+b.h/2, bw=b.w*0.13, bh=b.h*0.36;
   ctx.fillRect(cx-bw*1.7,cy-bh/2,bw,bh); ctx.fillRect(cx+bw*0.7,cy-bh/2,bw,bh);
+ });
 }
 function drawTouchUI(){
   if(!IS_TOUCH) return;
+ crisp(()=>{
   drawPauseBtn();
   const R=joyRadius();
   if(joy.active){
@@ -1468,11 +1506,13 @@ function drawTouchUI(){
     ctx.fillStyle='rgba(255,244,220,.45)'; ctx.font='bold 12px Trebuchet MS'; ctx.textAlign='center';
     ctx.fillText('Arrasta num dos cantos de baixo para conduzir', W/2, H-SAFE.b-10);
   }
+ });
 }
 // ---------- aviso de orientação (arranque touch) ----------
 let obrigadoBtn=null;
 function drawOrient(){
   drawMenu();   // fundo
+ crisp(()=>{
   ctx.fillStyle='rgba(6,8,16,.82)'; ctx.fillRect(0,0,W,H);
   const pw=Math.min(470,W*0.88), ph=Math.min(300,H*0.7), px=W/2-pw/2, py=H/2-ph/2;
   ctx.fillStyle='rgba(20,22,34,.98)'; rr(ctx,px,py,pw,ph,18); ctx.fill();
@@ -1508,6 +1548,7 @@ function drawOrient(){
   ctx.strokeStyle='#0a0f1a'; ctx.lineWidth=3; rr(ctx,bx,byy,bw,bh,13); ctx.stroke();
   ctx.fillStyle=hover?'#2c6e22':'#fff'; ctx.font='900 20px "Arial Black", Impact, sans-serif';
   ctx.fillText('Obrigado!', W/2, byy+bh/2+7);
+ });
 }
 function inObrigadoBtn(x,y){ return obrigadoBtn && x>obrigadoBtn.x&&x<obrigadoBtn.x+obrigadoBtn.w&&y>obrigadoBtn.y&&y<obrigadoBtn.y+obrigadoBtn.h; }
 function drawCountdown(){
@@ -1539,6 +1580,7 @@ function drawCountdown(){
 let pauseBtns=[];
 function drawPause(){
   drawScene();
+ crisp(()=>{
   ctx.fillStyle='rgba(6,8,16,.74)'; ctx.fillRect(0,0,W,H);
   const pw=Math.min(380,W*0.78), ph=300, px=W/2-pw/2, py=H/2-ph/2;
   ctx.fillStyle='rgba(20,22,34,.96)'; rr(ctx,px,py,pw,ph,16); ctx.fill();
@@ -1566,6 +1608,7 @@ function drawPause(){
   }
   ctx.fillStyle='rgba(255,244,220,.6)'; ctx.font='12px Trebuchet MS';
   ctx.fillText('(ESC para continuar)',W/2,py+ph-14);
+ });
 }
 // ================= DRAW: WORLD =================
 function w2s(y){ return H - (y - camY); }
@@ -2345,7 +2388,8 @@ function drawMenu(){
   for(const st of GOLD_CHROME) vsg.addColorStop(st[0],st[1]);
   ctx.fillStyle=vsg; ctx.fillText('VS',0,vsS*0.35);
   ctx.restore();
-  // buttons + difficulty meters
+  // buttons + difficulty meters (UI nítida por cima da arte pixelizada)
+ crisp(()=>{
   menuBtns=[];
   // botão de silenciar música (topo centro)
   {
@@ -2369,6 +2413,7 @@ function drawMenu(){
   ctx.font='bold '+descFs+'px Trebuchet MS'; ctx.textAlign='center';
   ctx.fillStyle='rgba(255,244,220,.9)';
   dlines.forEach((ln,i)=>ctx.fillText(ln, W/2, descY0+i*lh));
+ });
 }
 // ================= SIDE-VIEW ART (cutscenes) =================
 function drawMoedasHeadSide(x,y,s,mood){
@@ -2722,7 +2767,7 @@ function drawCut(){
     case 'unicorn': cutUnicorn(p); break;
     case 'end': cutEnd(p); break;
   }
-  if(cut.type!=='end'){ ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='12px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('(espaço para continuar)',W/2,H-14); }
+  if(cut.type!=='end') crisp(()=>{ ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='12px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('(espaço para continuar)',W/2,H-14); });
 }
 function cutMoedasWin(p){
   // escolhe aleatoriamente (fixado no início da cutscene): condomínio ou hotel
@@ -3290,7 +3335,7 @@ function updatePlay(dt){
   if(mv) drainResource(dt);
   const opp = (playerSide==='moedas')? lisboetas : moedas;
   if(aiIdle>0){ aiIdle=Math.max(0,aiIdle-dt); }   // computador parado (reação/apanhar)
-  else { stepAI(opp, dt, oppSpeed()); }
+  else { stepAI(opp, dt, oppSpeed(), oppAccel()); }
   const targetCam = player.y - H*0.35;
   camY = lerp(camY, targetCam, 1-Math.pow(0.001,dt));
   if(camY<-40) camY=-40;
@@ -3309,9 +3354,15 @@ function updatePlay(dt){
 // uma corrida impecável ainda o bate, e o computador dos Lisboetas com a
 // borracha no máximo (277) também o alcança. Dá tensão em vez de derrota certa.
 const UNICORN_SPEED = 272;
+const LISBOETAS_SPEED = 282;      // Lisboetas com o jogador ao volante
+// O unicórnio do computador chega exactamente ao mesmo topo dos Lisboetas, mas
+// tem de o construir: arranca forte e perde balanço em cada curva e encontrão,
+// por isso na prática corre abaixo disso.
+const UNICORN_AI_TOP = LISBOETAS_SPEED;
+const UNICORN_AI_ACC = 330;       // px/s² — cerca de 0,9 s dos 0 ao topo
 function playerBaseSpeed(){
   if(player.kind==='moedas'){ return player.unicorn? UNICORN_SPEED : 210; }
-  return 282;   // Lisboetas um pouco mais rápidos para terem hipótese
+  return LISBOETAS_SPEED;   // Lisboetas um pouco mais rápidos para terem hipótese
 }
 // ---- borracha: o computador acelera quando fica muito para trás ----
 // Sem isto uma boa arrancada mata a corrida — o adversário desaparece atrás
@@ -3337,9 +3388,18 @@ function catchupBoost(){
   return boost;
 }
 function oppSpeed(){
-  const base = (playerSide==='moedas') ? 150 : (moedas.unicorn?UNICORN_SPEED:245);
+  // Unicórnio do computador: tecto duro igual aos Lisboetas do jogador. Não
+  // leva borracha por cima — o próprio unicórnio já é a compensação do Moedas
+  // quando vai a perder, e assim nunca chega a ser mais rápido que o jogador.
+  if(playerSide==='lisboetas' && moedas.unicorn) return UNICORN_AI_TOP;
+  const base = (playerSide==='moedas') ? 150 : 245;
   // o tecto relativo evita teletransportes: recupera terreno, não humilha
   return Math.min(base*catchupBoost(), playerBaseSpeed()*CATCH_CEIL);
+}
+// Só o unicórnio do computador acelera; o resto mantém a resposta imediata
+// que já estava afinada. 0 = sem rampa.
+function oppAccel(){
+  return (playerSide==='lisboetas' && moedas.unicorn) ? UNICORN_AI_ACC : 0;
 }
 function drainResource(dt){
   if(player.kind==='moedas'){
@@ -3422,6 +3482,7 @@ function frame(now){
   // plano), em baixo contra relógios não monótonos, que poriam cut.t negativo
   let dt=(now-last)/1000; last=now; if(dt>0.05)dt=0.05; else if(dt<0)dt=0;
   updateMusic();
+  lofiBegin();   // cena inteira para a grelha de pixels; UI/texto via crisp()
   if(state==='orient'){
     drawOrient();
     if(mouse.clicked && inObrigadoBtn(mouse.x,mouse.y)){ initAudio(); state='menu'; }
@@ -3475,6 +3536,7 @@ function frame(now){
     }
     if(cut && cut.type==='end' && (mouse.clicked || keys[' '])){ keys[' ']=false; particles.length=0; resetToMenu(); }
   }
+  lofiEnd();     // amplia a grelha (nearest-neighbour) e corre a fila crisp
   scanlines();
   mouse.clicked=false;
   requestAnimationFrame(frame);
