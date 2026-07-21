@@ -1512,7 +1512,37 @@ function drawScene(){
   drawWorld();
   if(playerSide==='moedas'){ drawLisboetasEnt(lisboetas); drawMoedasEnt(moedas); }
   else { drawMoedasEnt(moedas); drawLisboetasEnt(lisboetas); }
-  drawParticles(); drawHUD();
+  drawParticles(); drawOppMarker(); drawHUD();
+}
+// Chapa na berma do ecrã quando o adversário sai do enquadramento: aponta
+// para ele e diz a que distância vai, para a corrida se perceber sem o ver.
+function drawOppMarker(){
+  const opp = (playerSide==='moedas') ? lisboetas : moedas;
+  if(!opp || !player) return;
+  const sx=opp.x, sy=w2s(opp.y);
+  if(sx>-12 && sx<W+12 && sy>-12 && sy<H+12) return;   // ainda à vista
+  // margens com folga para a ponta da seta (32px) não sair do ecrã
+  const padT=SAFE.t+128, padB=SAFE.b+(IS_TOUCH?62:46), padL=SAFE.l+42, padR=SAFE.r+42;
+  const mx=clamp(sx,padL,W-padR), my=clamp(sy,padT,H-padB);
+  const isM = opp.kind==='moedas';
+  const col = isM? '#e74c3c' : '#8fbf3f';
+  const icon= isM? (opp.unicorn?'🦄':'🚗') : '🚲';
+  // seta a apontar para fora, na direção real do adversário
+  ctx.save(); ctx.translate(mx,my); ctx.rotate(Math.atan2(sy-my,sx-mx));
+  ctx.fillStyle=col;
+  ctx.beginPath(); ctx.moveTo(32,0); ctx.lineTo(20,-8); ctx.lineTo(20,8); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle='rgba(10,13,24,.82)'; ctx.beginPath(); ctx.arc(mx,my,19,0,TAU); ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(mx,my,19,0,TAU); ctx.stroke();
+  ctx.font='16px Trebuchet MS'; ctx.textAlign='center'; ctx.fillStyle='#fff';
+  ctx.fillText(icon,mx,my+6);
+  // distância, virada para dentro quando a chapa encosta ao fundo
+  ctx.font='900 11px "Arial Black", Impact, sans-serif';
+  const label=Math.round(Math.hypot(opp.x-player.x,opp.y-player.y)/8)+' m';
+  const lw=ctx.measureText(label).width+10;
+  const ly=(my<H-padB-26)? my+22 : my-37;
+  ctx.fillStyle='rgba(10,13,24,.82)'; rr(ctx,mx-lw/2,ly,lw,15,4); ctx.fill();
+  ctx.fillStyle=col; ctx.fillText(label,mx,ly+11.5);
 }
 // ---------- controlos táteis (botão de pausa + joystick) ----------
 function drawPauseBtn(){
