@@ -44,7 +44,7 @@ let inLofi = false; const crispQ = [];
 function crisp(fn){ if(inLofi) crispQ.push(fn); else fn(); }
 function lofiBegin(){
   inLofi = true; ctx = LCTX;
-  ctx.setTransform(1/PIXD,0,0,1/PIXD,0,0);
+  ctx.setTransform(DPR/PIXD,0,0,DPR/PIXD,0,0);
   ctx.clearRect(0,0,W,H);
 }
 function lofiEnd(){
@@ -63,8 +63,11 @@ function resize(){
   cv.style.width = W+'px'; cv.style.height = H+'px';
   MCTX.setTransform(DPR,0,0,DPR,0,0);
   PIXD = W>=1000 ? 2 : 1.5;          // ecrãs pequenos: grelha mais fina p/ legibilidade
-  LOFI.width  = Math.ceil(W/PIXD);
-  LOFI.height = Math.ceil(H/PIXD);
+  // O buffer é criado em pixels FÍSICOS. Antes dividia só a resolução CSS e
+  // ignorava o DPR, por isso num ecrã retina a perda duplicava: o mundo era
+  // ampliado 4x e sobravam 6% dos pixels. Assim a ampliação é sempre PIXD.
+  LOFI.width  = Math.ceil(W*DPR/PIXD);
+  LOFI.height = Math.ceil(H*DPR/PIXD);
   if(typeof readSafe==='function') readSafe();
 }
 window.addEventListener('resize', resize);
@@ -322,10 +325,6 @@ function paintPortraitR(g,mood){
   g.strokeStyle='#141b33'; g.lineWidth=2.4; g.stroke();
   g.beginPath(); g.moveTo(132,207); g.bezierCurveTo(126,230,119,250,110,266);
   g.bezierCurveTo(127,254,138,234,142,214); g.closePath(); g.fill(); g.stroke();
-  g.fillStyle='#1f3160';
-  g.beginPath(); g.moveTo(97,268); g.lineTo(123,268); g.lineTo(119,300); g.lineTo(101,300); g.closePath(); g.fill();
-  g.strokeStyle='#141b33'; g.lineWidth=2; g.stroke();
-  g.fillStyle='#101c3c'; g.beginPath(); g.arc(110,278,2.8,0,TAU); g.fill();
   // pin encarnado
   g.save(); g.translate(84,236); g.rotate(-0.28);
   g.fillStyle='#e03a2c'; g.fillRect(-2.6,-5.4,5.2,10.8);
