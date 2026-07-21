@@ -1273,7 +1273,9 @@ buildSprites();
 
 // ================= WORLD GEN =================
 let cells, plots, lastRowGen;
-let plotsPlaced=0, rowsSinceGas=999, rowsSinceGira=999, giraCount=0;
+let obstacles=[];                 // buracos e pilhas de lixo nas ruas
+const OBST_R=26;                  // raio de colisão de um obstáculo
+let plotsPlaced=0, rowsSinceGas=999, rowsSinceGira=999, giraCount=0, obstCount=0;
 let plotRows=new Set(), landmarkAt=new Map();
 const PLOT_SPACING=4, FIRST_PLOT_ROW=5;   // terrenos bem afastados
 const MAX_ROW = FIRST_PLOT_ROW + (TOTAL_PLOTS-1)*PLOT_SPACING + 6;  // mundo finito (último terreno + folga)
@@ -1290,9 +1292,9 @@ function planWorld(){
   }
 }
 function genReset(){
-  cells = new Map(); plots = [];
+  cells = new Map(); plots = []; obstacles = [];
   lastRowGen = -1;
-  plotsPlaced=0; rowsSinceGas=999; rowsSinceGira=999; giraCount=0;
+  plotsPlaced=0; rowsSinceGas=999; rowsSinceGira=999; giraCount=0; obstCount=0;
   planWorld();
   // O mundo é finito e pequeno (~190 células): gera-se todo de uma vez. Assim
   // os 10 terrenos existem sempre e o fim da partida não depende de o jogador
@@ -1350,6 +1352,37 @@ function genRow(row){
     }
     cells.set(key, feat);
   }
+  genObstacles(row,R);
+}
+// Obstáculos de rua (buracos / pilhas de lixo). Vivem na banda horizontal de
+// estrada entre a fila row-1 e a fila row — essa faixa é só asfalto e
+// atravessa o mundo todo, por isso nunca coincidem com um prédio.
+//
+// GARANTIA DE CAMINHO LIVRE: no máximo UM obstáculo por banda. Um obstáculo
+// ocupa ~86px (raio 26 + raio 17 do jogador, dos dois lados) numa banda com
+// 1088px úteis e 5 cruzamentos verticais; corta portanto a banda em duas
+// partes das quais uma é sempre vazia (encostada à parede) ou contém ≥4
+// cruzamentos. Nunca chega para isolar o jogador: sobra sempre uma região
+// contínua com pelo menos 4 corredores verticais. Com dois por banda já era
+// possível ladear um corredor e prender lá o jogador — daí o limite de um.
+// Também não se põem obstáculos em frente a um terreno, para não estorvar a
+// entrada na única célula que é preciso alcançar.
+function genObstacles(row,R){
+  if(row<3 || row>MAX_ROW) return;
+  if(R()>=0.55) return;                                   // ~55% das bandas têm um
+  const y=row*ROW_H+STREET/2;
+  const slots=[];
+  for(let k=0;k<=COLS;k++) slots.push({x:colX(k)-STREET/2, col:-1});  // cruzamentos
+  for(let c=0;c<COLS;c++) slots.push({x:colX(c)+CELL_W/2, col:c});    // frentes de célula
+  const livres=slots.filter(s=>{
+    if(s.col<0) return true;
+    const f=cells.get(row+','+s.col);
+    return !(f && f.type==='plot');
+  });
+  const s=livres[(R()*livres.length)|0];
+  // tipo alternado em vez de sorteado: o mundo é determinístico, e à roleta
+  // saía um desequilíbrio fixo (5 buracos para 13 pilhas de lixo)
+  obstacles.push({type:(obstCount++%2)?'trash':'hole', x:s.x, y, seed:(R()*1e6|0)});
 }
 const OPEN_LM={pombal:1,rossio:1};   // praças atravessáveis
 function isSolid(feat){ return feat && (feat.type==='building' || (feat.type==='landmark' && !OPEN_LM[feat.name])); }
@@ -1363,10 +1396,12 @@ const FAMILIES_PER_PLOT = 50;
 const familiesHoused = ()=> plotsSaved*FAMILIES_PER_PLOT;
 const luxCount = ()=> hotelsBuilt+condosBuilt;
 function makeMoedas(isPlayer){
-  return {kind:'moedas', x:colX(2)+CELL_W/2, y:120, ang:-Math.PI/2, isPlayer, speed:0, gas:1, unicorn:false};
+  return {kind:'moedas', x:colX(2)+CELL_W/2, y:120, ang:-Math.PI/2, isPlayer, speed:0, gas:1, unicorn:false,
+          stun:0, iframes:0, jumpT:0};
 }
 function makeLisboetas(isPlayer){
-  return {kind:'lisboetas', x:colX(1)+CELL_W/2, y:120, ang:-Math.PI/2, isPlayer, speed:0, battery:1, riders:5};
+  return {kind:'lisboetas', x:colX(1)+CELL_W/2, y:120, ang:-Math.PI/2, isPlayer, speed:0, battery:1, riders:5,
+          stun:0, iframes:0, jumpT:0};
 }
 function startGame(side){
   playerSide = side;
@@ -1416,7 +1451,8 @@ function stepAI(ent, dt, spd, acc){
   let ang=Math.atan2(tgt.y-ent.y, tgt.x-ent.x);
   const probeX=ent.x+Math.cos(ang)*(PLAYER_R+16);
   const probeY=ent.y+Math.sin(ang)*(PLAYER_R+16);
-  if(pointSolid(probeX,probeY)){
+  // o unicórnio não desvia de obstáculos: salta-os
+  if(pointSolid(probeX,probeY) || (!ent.unicorn && obstacleNear(probeX,probeY))){
     // O lado do desvio varia com o tempo, não só com ent.y: encravado, ent.y
     // congela e o computador insistia para sempre no mesmo lado bloqueado.
     ang += (Math.sin(ent.y*0.01 + performance.now()*0.0016)>0 ? 0.9 : -0.9);
@@ -1441,6 +1477,42 @@ function pointSolid(x,y){
     for(let c=0;c<COLS;c++){ const f=cells.get(r+','+c);
       if(isSolid(f)&&x>f.x-f.w/2&&x<f.x+f.w/2&&y>f.y-f.h/2&&y<f.y+f.h/2) return true; } }
   return false;
+}
+function obstacleNear(x,y){
+  for(const o of obstacles){
+    if(Math.abs(o.y-y)>90) continue;
+    const dx=o.x-x, dy=o.y-y;
+    if(dx*dx+dy*dy < (OBST_R+18)*(OBST_R+18)) return true;
+  }
+  return false;
+}
+// Choque com obstáculos de rua. Unicórnio nunca choca: ao aproximar-se
+// salta automaticamente por cima (jumpT conta 1s de animação). Os restantes
+// ficam atordoados 2s (a piscar vermelho); o jogador vê ainda a cutscene.
+function checkObstacles(ent,dt){
+  if(ent.jumpT>0) ent.jumpT-=dt;
+  if(ent.iframes>0) ent.iframes-=dt;
+  for(const o of obstacles){
+    if(Math.abs(o.y-ent.y)>90) continue;
+    const dx=ent.x-o.x, dy=ent.y-o.y, d=Math.hypot(dx,dy);
+    if(ent.unicorn){
+      if(ent.jumpT<=0 && d<OBST_R+PLAYER_R+46 &&
+         Math.cos(ent.ang)*-dx + Math.sin(ent.ang)*-dy > 0)   // só se vai na direção dele
+        ent.jumpT=1;
+      continue;
+    }
+    if(ent.iframes>0 || ent.stun>0) continue;
+    if(d < OBST_R+PLAYER_R){
+      const dd=d||0.001, push=(OBST_R+PLAYER_R-d)+8;
+      ent.x+=dx/dd*push; ent.y+=dy/dd*push;      // ressalto para fora
+      // O stun só corre em updatePlay, por isso os 2s contam DEPOIS da
+      // cutscene: primeiro a cena (saltável), depois 2s parado a piscar.
+      ent.stun=2; ent.iframes=3.4; ent.speed=0;
+      if(ent.isPlayer) playCut(o.type,2.6);
+      else aiIdle=Math.max(aiIdle,2);
+      return;
+    }
+  }
 }
 
 // ---------- particles ----------
@@ -1761,10 +1833,74 @@ function drawWorld(){
       if(f) drawFeature(f);
     }
   }
+  drawObstacles(botWorld-120, topWorld+120);
   // luz solar quente (tom realista)
   const sun=ctx.createRadialGradient(W*0.3,-40,60,W*0.3,-40,H*1.25);
   sun.addColorStop(0,'rgba(255,238,196,0.12)'); sun.addColorStop(0.55,'rgba(255,238,196,0.03)'); sun.addColorStop(1,'rgba(20,24,48,0.10)');
   ctx.fillStyle=sun; ctx.fillRect(0,0,W,H);
+}
+// ---------- obstáculos de rua (vista de cima) ----------
+function drawObstacles(y0,y1){
+  for(const o of obstacles){
+    if(o.y<y0||o.y>y1) continue;
+    const x=sx(o.x), y=w2s(o.y);
+    if(o.type==='hole') drawHoleTop(x,y,o.seed); else drawTrashTop(x,y,o.seed);
+  }
+}
+function drawHoleTop(x,y,seed){
+  const R=mulberry32(seed);
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='#4a4d52';                       // asfalto esboroado à volta
+  ctx.beginPath();
+  for(let i=0;i<10;i++){ const a=i/10*TAU, r=OBST_R+3+R()*7;
+    const px=Math.cos(a)*r, py=Math.sin(a)*r*0.82;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#20232a';                       // boca do buraco
+  ctx.beginPath();
+  for(let i=0;i<9;i++){ const a=i/9*TAU, r=OBST_R-4+R()*6;
+    const px=Math.cos(a)*r, py=Math.sin(a)*r*0.8;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.2; ctx.stroke();
+  ctx.fillStyle='#0d0f14';                       // fundo, mais escuro e descentrado
+  ctx.beginPath(); ctx.ellipse(2,2,OBST_R-11,(OBST_R-11)*0.72,0,0,TAU); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.10)';         // aresta iluminada a norte
+  ctx.beginPath(); ctx.ellipse(0,-2,OBST_R-6,(OBST_R-6)*0.5,0,Math.PI,TAU); ctx.fill();
+  ctx.fillStyle='#5a5e64';                       // pedaços soltos
+  for(let i=0;i<5;i++){ const a=R()*TAU, r=OBST_R+4+R()*10;
+    ctx.fillRect(Math.cos(a)*r,Math.sin(a)*r*0.8,3+R()*3,2.5+R()*2); }
+  ctx.restore();
+}
+function drawTrashTop(x,y,seed){
+  const R=mulberry32(seed);
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='rgba(0,0,0,.26)';
+  ctx.beginPath(); ctx.ellipse(3,6,OBST_R+6,(OBST_R+6)*0.6,0,0,TAU); ctx.fill();
+  const cores=['#2a2d33','#33373e','#3b4048','#262a30'];
+  for(let i=0;i<7;i++){                          // monte de sacos pretos
+    const a=R()*TAU, rr2=R()*15;
+    const px=Math.cos(a)*rr2, py=Math.sin(a)*rr2*0.7;
+    const rad=9+R()*7;
+    ctx.fillStyle=cores[i%4];
+    ctx.beginPath(); ctx.ellipse(px,py,rad,rad*0.85,R()*1.5,0,TAU); ctx.fill();
+    ctx.strokeStyle=CEL; ctx.lineWidth=1.8; ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.13)';       // brilho de plástico
+    ctx.beginPath(); ctx.ellipse(px-rad*0.3,py-rad*0.35,rad*0.32,rad*0.18,-0.5,0,TAU); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.lineWidth=1.4;   // nó do saco
+    ctx.beginPath(); ctx.moveTo(px,py-rad*0.7); ctx.lineTo(px+2,py-rad*0.95); ctx.stroke();
+  }
+  const lixo=['#c8b48a','#9fb56a','#c46b5a','#d8cfa8','#8a9fc4'];
+  for(let i=0;i<9;i++){                          // detritos derramados
+    const a=R()*TAU, r=OBST_R-2+R()*12;
+    const px=Math.cos(a)*r, py=Math.sin(a)*r*0.72;
+    ctx.fillStyle=lixo[i%5];
+    ctx.save(); ctx.translate(px,py); ctx.rotate(R()*TAU);
+    ctx.fillRect(-2.5,-2,5+R()*4,3.5+R()*2);
+    ctx.strokeStyle=CEL; ctx.lineWidth=1; ctx.strokeRect(-2.5,-2,5+R()*4,3.5+R()*2);
+    ctx.restore();
+  }
+  ctx.restore();
 }
 let asphaltPat=null;
 function drawRiver(){
@@ -2231,10 +2367,19 @@ function drawMoedasEnt(m){
       emit({x:m.x-rx*(14+i*7)+rand(-3,3), y:m.y-ry*(14+i*7)+rand(-3,3),
         vx:0,vy:0,life:0.45,g:0,r:4.5,col:`hsl(${(performance.now()*0.35+i*45)%360},90%,58%)`});
     }
-    ctx.save(); ctx.translate(sx(m.x), w2s(m.y));
-    if(goingUp){ ctx.scale(0.5,0.5); ctx.rotate(lean); drawUniRear(t); }
-    else if(goingDown){ ctx.scale(0.5,0.5); ctx.rotate(-lean); drawUniFront(t); }
-    else { ctx.scale(f*0.5,0.5); ctx.rotate(tilt); drawUniSide(0,0,1,t); }
+    const jp=uniJumpOffset(m);
+    if(jp.dy<0){                                    // sombra no chão durante o salto
+      ctx.save(); ctx.translate(sx(m.x), w2s(m.y));
+      ctx.fillStyle=`rgba(0,0,0,${0.28+jp.dy/54*0.18})`;
+      ctx.beginPath(); ctx.ellipse(0,10,20+jp.dy/6,7+jp.dy/18,0,0,TAU); ctx.fill();
+      ctx.restore();
+    }
+    ctx.save(); ctx.translate(sx(m.x), w2s(m.y)+jp.dy); ctx.scale(jp.sc,jp.sc);
+    stunFlash(m,()=>{
+      if(goingUp){ ctx.scale(0.5,0.5); ctx.rotate(lean); drawUniRear(t); }
+      else if(goingDown){ ctx.scale(0.5,0.5); ctx.rotate(-lean); drawUniFront(t); }
+      else { ctx.scale(f*0.5,0.5); ctx.rotate(tilt); drawUniSide(0,0,1,t); }
+    });
     ctx.restore();
   } else {
     // MUITO fumo do escape (sai pela traseira, no rumo oposto)
@@ -2247,11 +2392,42 @@ function drawMoedasEnt(m){
       emit({x:m.x-rx*30, y:m.y-ry*30, vx:-rx*rand(8,20), vy:-ry*rand(8,20),
         life:1.9, g:0, r:rand(9,15), col:'rgba(58,58,64,0.45)'});
     ctx.save(); ctx.translate(sx(m.x), w2s(m.y));
-    if(goingUp){ ctx.scale(0.45,0.45); ctx.rotate(lean); drawCarRear(); }
-    else if(goingDown){ ctx.scale(0.45,0.45); ctx.rotate(-lean); drawCarFront(); }
-    else { ctx.scale(f*0.45,0.45); ctx.rotate(tilt); drawCarSide(0,0,1,false); }
+    stunFlash(m,()=>{
+      if(goingUp){ ctx.scale(0.45,0.45); ctx.rotate(lean); drawCarRear(); }
+      else if(goingDown){ ctx.scale(0.45,0.45); ctx.rotate(-lean); drawCarFront(); }
+      else { ctx.scale(f*0.45,0.45); ctx.rotate(tilt); drawCarSide(0,0,1,false); }
+    });
     ctx.restore();
   }
+}
+// Atordoado por um obstáculo: a silhueta pisca vermelho. A entidade vai para
+// uma camada offscreen para o tinte apanhar só os pixels dela — um
+// source-atop directo no ctx principal tingiria o mundo todo, que é opaco.
+let flashCv=null, flashCtx=null;
+function stunFlash(ent,draw){
+  if(ent.stun<=0 || Math.sin(performance.now()*0.022)<=0){ draw(); return; }
+  if(!flashCv){ flashCv=document.createElement('canvas'); flashCv.width=240; flashCv.height=240;
+                flashCtx=flashCv.getContext('2d'); }
+  const g=flashCtx;
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,240,240);
+  g.lineJoin='round'; g.lineCap='round';
+  const main=ctx; ctx=g;
+  g.save(); g.translate(120,120);
+  draw();
+  g.restore();
+  ctx=main;
+  g.globalCompositeOperation='source-atop';
+  g.fillStyle='rgba(231,76,60,.6)'; g.fillRect(0,0,240,240);
+  g.globalCompositeOperation='source-over';
+  ctx.drawImage(flashCv,-120,-120);
+}
+// Salto do unicórnio: 1s de animação: sobe, paira e desce, com sombra a
+// encolher por baixo. jumpT conta de 1 até 0.
+function uniJumpOffset(ent){
+  if(!ent || ent.jumpT<=0) return {dy:0,sc:1};
+  const u=1-ent.jumpT;                 // 0 → 1
+  const h=Math.sin(u*Math.PI);         // arco
+  return {dy:-h*54, sc:1+h*0.12};
 }
 const BIKE_FRQ=[1.9,2.3,1.7,2.6,2.1], BIKE_PH=[0,1.7,3.1,4.4,0.9];
 function drawLisboetasEnt(l){
@@ -2266,6 +2442,7 @@ function drawLisboetasEnt(l){
   const offs = goingDown ? [[0,13],[-26,5],[26,5],[-13,-7],[13,-7]]
                          : [[0,-13],[-26,-5],[26,-5],[-13,7],[13,7]];
   ctx.save(); ctx.translate(bx,by);
+  stunFlash(l,()=>{
   if(goingUp){ ctx.rotate(lean); }
   else if(goingDown){ ctx.rotate(-lean); }
   else { ctx.scale(f,1); ctx.rotate(tilt); }
@@ -2280,6 +2457,7 @@ function drawLisboetasEnt(l){
     else drawBikeSide(0,0,0.62,false,i);
     ctx.restore();
   }
+  });
   ctx.restore();
 }
 
@@ -3143,6 +3321,8 @@ function drawCut(){
     case 'gasTruck': cutGasTruck(p); break;
     case 'noBattery': cutNoBattery(p); break;
     case 'unicorn': cutUnicorn(p); break;
+    case 'hole': cutObstacle(p,'hole'); break;
+    case 'trash': cutObstacle(p,'trash'); break;
     case 'end': cutEnd(p); break;
   }
   if(cut.type!=='end') crisp(()=>{ ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='12px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('(espaço para continuar)',W/2,H-14); });
@@ -3625,6 +3805,220 @@ function cashPile(cx,cy){
     emitScreen({x:cx+rand(-40,40),y:cy,vx:Math.cos(a)*rand(60,150),vy:Math.sin(a)*rand(60,150)-40,life:1.2,g:200,
       r:rand(5,7),col:CASH_COLS[i%CASH_COLS.length],rect:true}); } }
 }
+// ---- cutscenes dos obstáculos de rua (buraco / lixo) ----
+// O lado é o do jogador: Lisboetas levam o ciclista despistado, Moedas leva o
+// Carlos fora do carro aos pontapés. A legenda é a mesma nos dois lados.
+const OBST_TXT={hole:'Esta cidade está cheia de buracos!',
+                trash:'Lisboa está cheia de lixo! Que nojo!'};
+function obstScene(){
+  const skg=ctx.createLinearGradient(0,0,0,H*0.52);
+  skg.addColorStop(0,'#7ab0d8'); skg.addColorStop(1,'#b8d4e8');
+  ctx.fillStyle=skg; ctx.fillRect(0,0,W,H*0.52);
+  ctx.fillStyle='#6b6f74'; ctx.fillRect(0,H*0.52,W,H*0.48);
+  ctx.fillStyle='#7d8186'; ctx.fillRect(0,H*0.52,W,10);          // lancil
+  ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=4; ctx.setLineDash([34,28]);
+  ctx.beginPath(); ctx.moveTo(0,H*0.93); ctx.lineTo(W,H*0.93); ctx.stroke(); ctx.setLineDash([]);
+}
+// Buraco visto de lado. Desenhado em duas metades para o carro poder ficar
+// meio caído lá dentro: primeiro o fundo, depois o veículo, depois o rebordo
+// da frente por cima — senão o carro tapava o buraco por completo.
+function holeSideBack(cx,cy,s){
+  const R=mulberry32(31);
+  ctx.save(); ctx.translate(cx,cy); ctx.scale(s,s);
+  ctx.fillStyle='#4a4d52';
+  ctx.beginPath(); ctx.ellipse(0,0,104,30,0,0,TAU); ctx.fill();
+  ctx.fillStyle='#20232a';
+  ctx.beginPath();
+  for(let i=0;i<14;i++){ const a=i/14*TAU, r=88+R()*14;
+    const px=Math.cos(a)*r, py=Math.sin(a)*r*0.26;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=3.5; ctx.stroke();
+  ctx.fillStyle='#0d0f14';
+  ctx.beginPath(); ctx.ellipse(4,3,70,15,0,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function holeSideFront(cx,cy,s){
+  const R=mulberry32(37);
+  ctx.save(); ctx.translate(cx,cy); ctx.scale(s,s);
+  ctx.fillStyle='#4a4d52';                       // rebordo perto do observador
+  ctx.beginPath(); ctx.ellipse(0,0,104,30,0,0.12,Math.PI-0.12); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=3.5;
+  ctx.beginPath(); ctx.ellipse(0,0,92,26,0,0.16,Math.PI-0.16); ctx.stroke();
+  ctx.fillStyle='#5a5e64';                       // pedaços de asfalto soltos
+  for(let i=0;i<8;i++){ const px=(R()-0.5)*250, py=14+R()*16;
+    ctx.fillRect(px,py,6+R()*6,4+R()*3); }
+  ctx.restore();
+}
+// Monte de sacos de lixo visto de lado, alguns rasgados a derramar. Divide-se
+// em fundo/frente pela mesma razão do buraco: o veículo fica espetado dentro.
+function trashPile(cx,cy,s,frente){
+  const R=mulberry32(frente?51:43);
+  ctx.save(); ctx.translate(cx,cy); ctx.scale(s,s);
+  if(!frente){
+    ctx.fillStyle='rgba(0,0,0,.3)';
+    ctx.beginPath(); ctx.ellipse(0,14,150,22,0,0,TAU); ctx.fill();
+  }
+  const cores=['#2a2d33','#33373e','#3b4048','#262a30'];
+  const n=frente?5:10;
+  const sacos=[];
+  for(let i=0;i<n;i++){
+    const px=(R()-0.5)*(frente?200:230), py=(frente?-R()*22:-R()*74), rad=(frente?26:24)+R()*16;
+    sacos.push({px,py,rad,c:cores[i%4],aberto:i%3===1});
+  }
+  sacos.sort((a,b)=>a.py-b.py);
+  const lixo=['#c8b48a','#9fb56a','#c46b5a','#d8cfa8','#8a9fc4'];
+  for(const sc of sacos){
+    ctx.fillStyle=sc.c;
+    ctx.beginPath(); ctx.ellipse(sc.px,sc.py,sc.rad,sc.rad*0.9,(R()-0.5)*0.5,0,TAU); ctx.fill();
+    ctx.strokeStyle=CEL; ctx.lineWidth=2.8; ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.14)';
+    ctx.beginPath(); ctx.ellipse(sc.px-sc.rad*0.32,sc.py-sc.rad*0.38,sc.rad*0.3,sc.rad*0.16,-0.5,0,TAU); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=2.4;        // nó
+    ctx.beginPath(); ctx.moveTo(sc.px,sc.py-sc.rad*0.85); ctx.lineTo(sc.px+5,sc.py-sc.rad*1.18); ctx.stroke();
+    if(sc.aberto){                                              // rasgão a derramar
+      ctx.fillStyle='#14161a';
+      ctx.beginPath(); ctx.moveTo(sc.px+sc.rad*0.15,sc.py-sc.rad*0.1);
+      ctx.lineTo(sc.px+sc.rad*0.85,sc.py-sc.rad*0.4);
+      ctx.lineTo(sc.px+sc.rad*0.8,sc.py+sc.rad*0.35); ctx.closePath(); ctx.fill();
+      for(let k=0;k<7;k++){
+        ctx.fillStyle=lixo[k%5];
+        const px=sc.px+sc.rad*0.7+R()*44, py=sc.py+R()*52;
+        ctx.save(); ctx.translate(px,py); ctx.rotate(R()*TAU);
+        ctx.fillRect(-5,-4,11+R()*7,8+R()*4);
+        ctx.strokeStyle=CEL; ctx.lineWidth=1.6; ctx.strokeRect(-5,-4,11+R()*7,8+R()*4);
+        ctx.restore();
+      }
+    }
+  }
+  if(frente){                                                   // detritos no chão
+    for(let i=0;i<12;i++){
+      ctx.fillStyle=lixo[i%5];
+      const px=(R()-0.5)*330, py=8+R()*20;
+      ctx.save(); ctx.translate(px,py); ctx.rotate(R()*TAU);
+      ctx.fillRect(-5,-4,12+R()*7,8+R()*4);
+      ctx.strokeStyle=CEL; ctx.lineWidth=1.5; ctx.strokeRect(-5,-4,12+R()*7,8+R()*4);
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+// Moscas a orbitar (só na cena do lixo)
+function moscas(cx,cy,n,T,esc){
+  const s=esc||1;
+  ctx.fillStyle='#1b1d22';
+  for(let i=0;i<n;i++){
+    const a=T*(1.6+i*0.35)+i*2.1;
+    ctx.save(); ctx.translate(cx+Math.cos(a)*(64+i*17)*s, cy+Math.sin(a*1.4)*(34+i*8)*s);
+    ctx.beginPath(); ctx.ellipse(0,0,3.4*s,2.4*s,a,0,TAU); ctx.fill();
+    ctx.strokeStyle='rgba(60,64,72,.7)'; ctx.lineWidth=1.2*s;   // asas
+    ctx.beginPath(); ctx.moveTo(0,-1*s); ctx.lineTo(-4*s,-5*s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,-1*s); ctx.lineTo(4*s,-5*s); ctx.stroke();
+    ctx.restore();
+  }
+}
+function cutObstacle(p,kind){
+  const T=cut.t;
+  const cx=W*0.52, ground=H*0.80;
+  obstScene();
+  if(kind==='hole') holeSideBack(cx+40,ground,1.15); else trashPile(cx+70,ground-10,1.05,false);
+  if(playerSide==='lisboetas'){
+    if(kind==='hole'){
+      ctx.save(); ctx.translate(cx-60,ground+18); ctx.rotate(1.62);   // bicicleta tombada
+      drawBikeSide(0,0,1.9,false,null,{noRider:true}); ctx.restore();
+      holeSideFront(cx+40,ground,1.15);
+      fallenRider(cx-210,ground-14,T,1.55);
+    } else {
+      ctx.save(); ctx.translate(cx-10,ground-86); ctx.rotate(-0.85);  // bicicleta espetada
+      drawBikeSide(0,0,1.9,false,null,{noRider:true}); ctx.restore();
+      kickingLegs(cx+96,ground-104,T,1.7);
+      trashPile(cx+70,ground+22,1.05,true);
+      moscas(cx+70,ground-96,5,T,1.3);
+    }
+  } else {
+    // Carlos fora do carro, a chorar em arco e a dar pontapés no carro
+    const kick=Math.max(0,Math.sin(T*9));
+    ctx.save();
+    if(kind==='hole'){ ctx.translate(cx+58,ground-14); ctx.rotate(0.62); }   // focinho no buraco
+    else { ctx.translate(cx+86,ground-96); ctx.rotate(-0.42); }              // espetado no lixo
+    if(kick>0.9) ctx.rotate(0.025);
+    drawCarSide(0,0,1.85,false,undefined,true,false);
+    ctx.restore();
+    if(kind==='hole') holeSideFront(cx+40,ground,1.15);
+    else { trashPile(cx+70,ground+22,1.05,true); moscas(cx+80,ground-120,5,T,1.3); }
+    // encostado ao carro: o pé do pontapé tem de lhe chegar à chapa
+    const figX=cx+(kind==='hole'?-104:-92), figY=ground+10;
+    drawMoedasFig(figX,figY,1.6,'kick',T,1);   // virado para o carro (à direita)
+    tearFountain(figX,figY-86,1.0);            // mesma escala das outras cutscenes
+  }
+  banner(OBST_TXT[kind], H*0.13, kind==='hole'?'#ffd23f':'#9fd14f', 22);
+}
+// Ciclista caído: sentado no chão, agarrado ao joelho, com estrelinhas de dor.
+function fallenRider(x,y,T,s){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s||1,s||1);
+  ctx.fillStyle='rgba(0,0,0,.28)';
+  ctx.beginPath(); ctx.ellipse(6,16,36,7,0,0,TAU); ctx.fill();
+  ctx.lineCap='round';
+  ctx.strokeStyle=CEL; ctx.lineWidth=12;                        // pernas: uma dobrada
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(22,-8); ctx.lineTo(31,12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,3); ctx.lineTo(31,10); ctx.stroke();
+  ctx.strokeStyle='#22375c'; ctx.lineWidth=9;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(22,-8); ctx.lineTo(31,12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,3); ctx.lineTo(31,10); ctx.stroke();
+  ctx.fillStyle='#14161c'; ctx.strokeStyle=CEL; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.ellipse(35,12,6.5,3.6,0,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(35,3,6.5,3.6,-0.3,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=BIKE_JACKETS[1]; ctx.strokeStyle=CEL; ctx.lineWidth=2.4;   // tronco inclinado
+  ctx.beginPath(); ctx.ellipse(-4,-17,11,15,0.34,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle=CEL; ctx.lineWidth=9;                         // braços a agarrar o joelho
+  ctx.beginPath(); ctx.moveTo(0,-17); ctx.lineTo(17,-7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-2,-13); ctx.lineTo(17,-3); ctx.stroke();
+  ctx.strokeStyle=BIKE_JACKETS[1]; ctx.lineWidth=6.5;
+  ctx.beginPath(); ctx.moveTo(0,-17); ctx.lineTo(17,-7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-2,-13); ctx.lineTo(17,-3); ctx.stroke();
+  ctx.fillStyle='#f2cba2'; ctx.strokeStyle=CEL; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.arc(20,-6,4.8,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#f2cba2';                                      // cabeça
+  ctx.beginPath(); ctx.arc(-3,-40,10.5,0,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.4; ctx.stroke();
+  ctx.fillStyle=BIKE_HAIR[1];
+  ctx.beginPath(); ctx.arc(-4,-43,10,Math.PI,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.2;                       // olhos '> <' de dor
+  ctx.beginPath(); ctx.moveTo(-10,-43); ctx.lineTo(-5,-40); ctx.lineTo(-10,-37); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(4,-43); ctx.lineTo(-1,-40); ctx.lineTo(4,-37); ctx.stroke();
+  ctx.fillStyle='#7a2b20';                                      // boca aberta de dor
+  ctx.beginPath(); ctx.ellipse(-3,-31,4.5,3.4,0,0,TAU); ctx.fill();
+  ctx.fillStyle='#ffd23f';                                      // estrelinhas no joelho
+  for(let i=0;i<3;i++){
+    const a=T*4+i*2.1, r=18+Math.sin(T*6+i)*5;
+    star(23+Math.cos(a)*r, -6+Math.sin(a)*r*0.6, 5);
+  }
+  ctx.restore();
+}
+function star(x,y,r){
+  ctx.beginPath();
+  for(let i=0;i<10;i++){ const a=i/10*TAU-Math.PI/2, rr2=i%2?r*0.45:r;
+    const px=x+Math.cos(a)*rr2, py=y+Math.sin(a)*rr2;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+  ctx.closePath(); ctx.fill();
+}
+// Só as pernas de fora do monte de lixo, a espernear.
+function kickingLegs(x,y,T,s){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s||1,s||1);
+  ctx.lineCap='round';
+  for(const [dir,ph] of [[-1,0],[1,1.9]]){
+    const sw=Math.sin(T*7+ph);
+    ctx.save(); ctx.rotate(dir*0.32+sw*0.38);
+    ctx.strokeStyle=CEL; ctx.lineWidth=13;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dir*11,-44); ctx.stroke();
+    ctx.strokeStyle='#22375c'; ctx.lineWidth=9.5;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dir*11,-44); ctx.stroke();
+    ctx.fillStyle='#14161c'; ctx.strokeStyle=CEL; ctx.lineWidth=1.9;   // sapato
+    ctx.beginPath(); ctx.ellipse(dir*13,-49,7.5,4.8,dir*0.4,0,TAU); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+}
 function cutEnd(p){
   const eg=ctx.createLinearGradient(0,0,0,H);
   eg.addColorStop(0,'#171326'); eg.addColorStop(1,'#0b1020');
@@ -3701,19 +4095,25 @@ let pendingGameOver=false, pendingUnicorn=false, pendingEndCheck=false;
 function updatePlay(dt){
   const spd = playerBaseSpeed();
   let mv=false, vx=0, vy=0;
-  if(keys.ArrowUp||touchDir.u){vy+=1;} if(keys.ArrowDown||touchDir.d){vy-=1;}
-  if(keys.ArrowLeft||touchDir.l){vx-=1;} if(keys.ArrowRight||touchDir.r){vx+=1;}
-  if(vx||vy){
-    const l=Math.hypot(vx,vy); vx/=l; vy/=l;
-    player.ang=Math.atan2(vy,vx);
-    player.x+=vx*spd*dt; player.y+=vy*spd*dt;
-    collideSlide(player);
-    mv=true;
+  if(player.stun>0){ player.stun-=dt; }           // atordoado: 2s parado a piscar
+  else {
+    if(keys.ArrowUp||touchDir.u){vy+=1;} if(keys.ArrowDown||touchDir.d){vy-=1;}
+    if(keys.ArrowLeft||touchDir.l){vx-=1;} if(keys.ArrowRight||touchDir.r){vx+=1;}
+    if(vx||vy){
+      const l=Math.hypot(vx,vy); vx/=l; vy/=l;
+      player.ang=Math.atan2(vy,vx);
+      player.x+=vx*spd*dt; player.y+=vy*spd*dt;
+      collideSlide(player);
+      mv=true;
+    }
   }
   if(mv) drainResource(dt);
+  checkObstacles(player, dt);
   const opp = (playerSide==='moedas')? lisboetas : moedas;
+  if(opp.stun>0) opp.stun-=dt;
   if(aiIdle>0){ aiIdle=Math.max(0,aiIdle-dt); }   // computador parado (reação/apanhar)
   else { stepAI(opp, dt, oppSpeed(), oppAccel()); }
+  checkObstacles(opp, dt);
   const targetCam = player.y - H*0.35;
   camY = lerp(camY, targetCam, 1-Math.pow(0.001,dt));
   if(camY<-40) camY=-40;
