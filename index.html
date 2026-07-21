@@ -312,17 +312,18 @@ function paintPortraitR(g,mood){
   g.beginPath(); g.moveTo(88,206); g.lineTo(105,211); g.lineTo(92,234); g.stroke();
   g.beginPath(); g.moveTo(132,206); g.lineTo(115,211); g.lineTo(128,234); g.stroke();
 
-  // gravata rosa-choque
+  // gravata rosa-choque — a lâmina afina e vai desaparecer no ponto do V do
+  // casaco (y~270); antes descia até 302 e ficava por cima do fato fechado
   g.fillStyle='#e04a72';
   g.beginPath(); g.moveTo(100,211); g.lineTo(120,211); g.lineTo(117,231); g.lineTo(103,231); g.closePath(); g.fill();
-  g.beginPath(); g.moveTo(103,231); g.lineTo(117,231); g.lineTo(125,292); g.lineTo(110,302); g.lineTo(95,292); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(103,231); g.lineTo(117,231); g.lineTo(114,258); g.lineTo(110,270); g.lineTo(106,258); g.closePath(); g.fill();
   g.fillStyle='#bd3259';
-  g.beginPath(); g.moveTo(117,231); g.lineTo(125,292); g.lineTo(110,302); g.lineTo(113,264); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(117,231); g.lineTo(114,258); g.lineTo(110,270); g.lineTo(112,250); g.closePath(); g.fill();
   g.fillStyle='#ef7398';
-  g.beginPath(); g.moveTo(103,231); g.lineTo(108,231); g.lineTo(105,286); g.lineTo(99,281); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(103,231); g.lineTo(108,231); g.lineTo(106,256); g.lineTo(101,250); g.closePath(); g.fill();
   g.strokeStyle='#7e1f3c'; g.lineWidth=2;
   g.beginPath(); g.moveTo(100,211); g.lineTo(120,211); g.lineTo(117,231); g.lineTo(103,231); g.closePath(); g.stroke();
-  g.beginPath(); g.moveTo(103,231); g.lineTo(117,231); g.lineTo(125,292); g.lineTo(110,302); g.lineTo(95,292); g.closePath(); g.stroke();
+  g.beginPath(); g.moveTo(103,231); g.lineTo(117,231); g.lineTo(114,258); g.lineTo(110,270); g.lineTo(106,258); g.closePath(); g.stroke();
   g.beginPath(); g.moveTo(110,213); g.lineTo(109,229); g.stroke();
 
   // lapelas
@@ -366,10 +367,10 @@ function paintPortraitR(g,mood){
     g.bezierCurveTo(75,45,90,42,110,42);     // topo achatado
     g.bezierCurveTo(130,42,145,45,152,53);
     g.bezierCurveTo(157,64,157,82,156,102);  // têmpora direita vertical
-    g.bezierCurveTo(155,128,150,152,140,172);
-    g.bezierCurveTo(131,186,121,196,110,196);
-    g.bezierCurveTo(99,196,89,186,80,172);
-    g.bezierCurveTo(70,152,65,128,64,102);
+    g.bezierCurveTo(156,124,154,146,148,166); // desce mais recto (menos curva)
+    g.bezierCurveTo(142,180,128,189,110,189); // maxilar largo, queixo levantado
+    g.bezierCurveTo(92,189,78,180,72,166);
+    g.bezierCurveTo(66,146,64,124,64,102);
     g.closePath();
   };
   facePath(); g.fillStyle='#f2cba2'; g.fill();
@@ -399,10 +400,10 @@ function paintPortraitR(g,mood){
   const beardPath=()=>{
     g.beginPath();
     g.moveTo(66,128);
-    g.bezierCurveTo(67,150,72,166,80,174);
-    g.bezierCurveTo(89,187,99,195,110,195);
-    g.bezierCurveTo(121,195,131,187,140,174);
-    g.bezierCurveTo(148,166,153,150,154,128);
+    g.bezierCurveTo(67,148,72,162,80,170);
+    g.bezierCurveTo(89,182,99,189,110,189);
+    g.bezierCurveTo(121,189,131,182,140,170);
+    g.bezierCurveTo(148,162,153,148,154,128);
     g.bezierCurveTo(149,136,145,142,138,147);
     g.bezierCurveTo(132,152,127,154,122,155);
     g.lineTo(98,155);
@@ -519,10 +520,10 @@ function paintPortraitR(g,mood){
     g.bezierCurveTo(60,80,58,56,64,40);        // lado esquerdo sobe
     g.bezierCurveTo(68,30,80,24,94,22);        // canto quadrado
     g.bezierCurveTo(112,19,128,18,140,22);     // topo achatado a varrer
-    g.lineTo(154,26);
-    g.lineTo(165,38); g.lineTo(155,48);        // ponta 1
-    g.lineTo(168,62); g.lineTo(157,72);        // ponta 2
-    g.lineTo(164,88); g.lineTo(159,100);       // ponta 3
+    g.lineTo(153,27);
+    g.lineTo(159,37); g.lineTo(153,46);        // ponta 1 (suave)
+    g.lineTo(161,60); g.lineTo(155,70);        // ponta 2 (suave)
+    g.lineTo(159,86); g.lineTo(157,100);       // ponta 3 (suave)
     // linha do cabelo (de volta, direita → risca → aba esquerda)
     g.bezierCurveTo(155,84,152,74,146,68);     // entrada direita
     g.bezierCurveTo(133,60,117,58,101,60);     // linha alta e recta (testa)
@@ -544,9 +545,9 @@ function paintPortraitR(g,mood){
   g.closePath(); g.fill();
   // metade de trás mais escura (as pontas)
   g.fillStyle='#7d838b';
-  g.beginPath(); g.moveTo(122,20); g.bezierCurveTo(134,18,148,24,154,26);
-  g.lineTo(165,38); g.lineTo(155,48); g.lineTo(168,62); g.lineTo(157,72);
-  g.lineTo(164,88); g.lineTo(159,100);
+  g.beginPath(); g.moveTo(122,20); g.bezierCurveTo(134,18,148,24,153,27);
+  g.lineTo(159,37); g.lineTo(153,46); g.lineTo(161,60); g.lineTo(155,70);
+  g.lineTo(159,86); g.lineTo(157,100);
   g.bezierCurveTo(155,84,152,74,146,68);
   g.bezierCurveTo(138,63,130,61,122,60); g.closePath(); g.fill();
   // brilho anguloso a acompanhar o varrimento (nasce junto à risca)
@@ -1949,9 +1950,10 @@ function faceOf(ent){
 }
 // ---------- frames verticais (a subir): vistas traseiras ----------
 function drawWheelBack(x,y){
-  ctx.fillStyle='#15151a'; rr(ctx,x-8,y-24,16,48,6); ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,.12)'; rr(ctx,x-8,y-24,5,48,3); ctx.fill();
-  ctx.fillStyle='#f2c400'; ctx.beginPath(); ctx.arc(x,y,4,0,TAU); ctx.fill();
+  ctx.fillStyle='#15151a'; rr(ctx,x-6.5,y-24,13,48,6); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,x-6.5,y-24,13,48,6); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.14)'; rr(ctx,x-6.5,y-24,4,48,3); ctx.fill();
+  ctx.fillStyle='#f2c400'; ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
 }
 function drawMoedasBack(x,y,s){   // cabeça e ombros de costas (cel, com risca ao lado)
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
@@ -1974,41 +1976,47 @@ function drawMoedasBack(x,y,s){   // cabeça e ombros de costas (cel, com risca 
   ctx.restore();
 }
 function drawCarRear(){   // carro Noddy de trás (a subir); topo = frente
-  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,64,56,12,0,0,TAU); ctx.fill();
-  drawWheelBack(-54,26); drawWheelBack(54,26);
-  ctx.fillStyle='#d92f23'; ctx.strokeStyle='#7a120c'; ctx.lineWidth=2;
-  rr(ctx,-62,6,22,50,9); ctx.fill(); ctx.stroke();
-  rr(ctx,40,6,22,50,9); ctx.fill(); ctx.stroke();
-  const bod=ctx.createLinearGradient(-44,0,44,0);
-  bod.addColorStop(0,'#e0a018'); bod.addColorStop(0.5,'#ffdf5e'); bod.addColorStop(1,'#e0a018');
-  ctx.fillStyle=bod;
+  // Visto de cima o carro é estreito: a carroçaria vai de -37 a 37 (era -48 a 48)
+  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,64,44,12,0,0,TAU); ctx.fill();
+  drawWheelBack(-42,26); drawWheelBack(42,26);
+  ctx.fillStyle='#d92f23'; ctx.strokeStyle=CEL; ctx.lineWidth=2.4;
+  rr(ctx,-49,6,18,50,9); ctx.fill(); ctx.stroke();
+  rr(ctx,31,6,18,50,9); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#ffd23f';
   ctx.beginPath();
-  ctx.moveTo(-34,-60); ctx.lineTo(34,-60); ctx.quadraticCurveTo(48,-60,48,-30);
-  ctx.lineTo(48,48); ctx.quadraticCurveTo(48,60,34,60); ctx.lineTo(-34,60);
-  ctx.quadraticCurveTo(-48,60,-48,48); ctx.lineTo(-48,-30); ctx.quadraticCurveTo(-48,-60,-34,-60);
-  ctx.closePath(); ctx.fill(); ctx.strokeStyle='#8a5a10'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#d9dde2'; rr(ctx,-42,55,84,7,3); ctx.fill();               // para-choques
-  ctx.fillStyle='#c0392b';                                                  // faróis traseiros
-  ctx.beginPath(); ctx.arc(-32,51,5,0,TAU); ctx.fill(); ctx.beginPath(); ctx.arc(32,51,5,0,TAU); ctx.fill();
-  ctx.fillStyle='#a8231a'; rr(ctx,-32,-8,64,40,12); ctx.fill();             // cockpit
-  ctx.fillStyle='#7a150e'; rr(ctx,-28,18,56,12,5); ctx.fill();             // banco
-  drawMoedasBack(0,4,1.6);
+  ctx.moveTo(-26,-60); ctx.lineTo(26,-60); ctx.quadraticCurveTo(37,-60,37,-30);
+  ctx.lineTo(37,48); ctx.quadraticCurveTo(37,60,26,60); ctx.lineTo(-26,60);
+  ctx.quadraticCurveTo(-37,60,-37,48); ctx.lineTo(-37,-30); ctx.quadraticCurveTo(-37,-60,-26,-60);
+  ctx.closePath();
+  ctx.save(); ctx.clip();
+  ctx.fillStyle='#ffe98c'; ctx.fillRect(-37,-60,20,120);      // faixa de luz (esquerda)
+  ctx.fillStyle='#d99416'; ctx.fillRect(20,-60,17,120);       // plano de sombra (direita)
+  ctx.restore();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.6; ctx.stroke();
+  ctx.fillStyle='#d9dde2'; rr(ctx,-33,55,66,7,3); ctx.fill();              // para-choques
+  ctx.fillStyle='#c0392b';                                                 // faróis traseiros
+  ctx.beginPath(); ctx.arc(-25,48,5,0,TAU); ctx.fill(); ctx.beginPath(); ctx.arc(25,48,5,0,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.arc(-25,48,5,0,TAU); ctx.stroke(); ctx.beginPath(); ctx.arc(25,48,5,0,TAU); ctx.stroke();
+  ctx.fillStyle='#a8231a'; rr(ctx,-25,-8,50,40,11); ctx.fill();            // cockpit
+  ctx.fillStyle='#7a150e'; rr(ctx,-22,18,44,12,5); ctx.fill();            // banco
+  drawMoedasBack(0,4,1.5);
   ctx.fillStyle='#f4b41f'; ctx.beginPath(); ctx.arc(0,-50,4.5,0,TAU); ctx.fill();  // sino
-  ctx.strokeStyle='#8a5a10'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6; ctx.stroke();
 }
 function drawUniRear(t){   // unicórnio de trás; cauda arco-íris a cair para o observador
   const gal=Math.sin(t*9);
-  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,54,44,10,0,0,TAU); ctx.fill();
-  ctx.strokeStyle='#e9e9ee'; ctx.lineWidth=9; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(-16,22); ctx.lineTo(-20+gal*6,54); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(16,22); ctx.lineTo(20-gal*6,54); ctx.stroke();
-  ctx.fillStyle='#c9a54a'; ctx.fillRect(-25+gal*6,52,9,5); ctx.fillRect(16-gal*6,52,9,5);
-  ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(0,16,30,26,0,0,TAU); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,54,38,10,0,0,TAU); ctx.fill();
+  ctx.strokeStyle='#e9e9ee'; ctx.lineWidth=8; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-13,22); ctx.lineTo(-17+gal*6,54); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(13,22); ctx.lineTo(17-gal*6,54); ctx.stroke();
+  ctx.fillStyle='#c9a54a'; ctx.fillRect(-21+gal*6,52,8,5); ctx.fillRect(13-gal*6,52,8,5);
+  ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(0,16,25,26,0,0,TAU); ctx.fill();
   ctx.fillStyle='#d3d5e0';                          // plano de sombra cel
-  ctx.beginPath(); ctx.ellipse(0,16,30,26,0,-1.15,1.15); ctx.lineTo(0,16); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle=CEL; ctx.lineWidth=2.6; ctx.beginPath(); ctx.ellipse(0,16,30,26,0,0,TAU); ctx.stroke();
-  for(let i=0;i<6;i++){ ctx.strokeStyle=`hsl(${i*55},90%,58%)`; ctx.lineWidth=4;
-    ctx.beginPath(); ctx.moveTo(-10+i*4,30); ctx.quadraticCurveTo(-8+i*4+Math.sin(t*3+i)*4,50,-6+i*4,66); ctx.stroke(); }
+  ctx.beginPath(); ctx.ellipse(0,16,25,26,0,-1.15,1.15); ctx.lineTo(0,16); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.6; ctx.beginPath(); ctx.ellipse(0,16,25,26,0,0,TAU); ctx.stroke();
+  for(let i=0;i<6;i++){ ctx.strokeStyle=`hsl(${i*55},90%,58%)`; ctx.lineWidth=3.6;
+    ctx.beginPath(); ctx.moveTo(-8.5+i*3.4,30); ctx.quadraticCurveTo(-7+i*3.4+Math.sin(t*3+i)*4,50,-5+i*3.4,66); ctx.stroke(); }
   ctx.strokeStyle='#26386f'; ctx.lineWidth=6;   // braços no ar
   ctx.beginPath(); ctx.moveTo(-8,-4); ctx.lineTo(-21,-30+gal*4); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(8,-4); ctx.lineTo(21,-30-gal*4); ctx.stroke();
@@ -2047,9 +2055,161 @@ function drawBikeRear(x,y,s,v){   // bicicleta Gira de trás; cartaz virado para
   ctx.restore();
   ctx.restore();
 }
+// ---------- frames verticais (a descer): vistas de frente ----------
+// Cabeça do Moedas de frente, em miniatura (cel): risca ao lado, óculos
+// redondos, barba curta. Serve os frames de descida do carro e do unicórnio.
+function drawMoedasFace(x,y,s){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  ctx.fillStyle='#26386f'; rr(ctx,-15,0,30,16,6); ctx.fill();       // ombros
+  ctx.fillStyle='#1a2850'; rr(ctx,6,1,8,14,4); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,-15,0,30,16,6); ctx.stroke();
+  ctx.fillStyle='#ffffff';                                          // camisa + gravata
+  ctx.beginPath(); ctx.moveTo(-4,0); ctx.lineTo(4,0); ctx.lineTo(0,9); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#e04a72';
+  ctx.beginPath(); ctx.moveTo(-1.8,1); ctx.lineTo(1.8,1); ctx.lineTo(0,8); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#f2cba2'; ctx.beginPath(); ctx.arc(0,-9,11,0,TAU); ctx.fill();   // cara
+  ctx.fillStyle='rgba(0,0,0,.13)';                                  // sombra cel à direita
+  ctx.beginPath(); ctx.arc(0,-9,11,-1.15,1.15); ctx.lineTo(0,-9); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#b0aeaa';                                          // barba curta
+  ctx.beginPath(); ctx.arc(0,-7,9,0.35,Math.PI-0.35); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; ctx.beginPath(); ctx.arc(0,-9,11,0,TAU); ctx.stroke();
+  ctx.fillStyle='#a9afb6';                                          // cabelo p/ trás
+  ctx.beginPath(); ctx.arc(0,-11,11,Math.PI,TAU); ctx.fill();
+  ctx.fillStyle='#7d838b';
+  ctx.beginPath(); ctx.arc(0,-11,11,Math.PI*1.5,TAU); ctx.lineTo(0,-11); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.3;                           // risca ao lado
+  ctx.beginPath(); ctx.moveTo(-4,-21); ctx.lineTo(-5,-13); ctx.stroke();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6;                           // óculos redondos
+  ctx.beginPath(); ctx.arc(-4.5,-9,3.6,0,TAU); ctx.stroke();
+  ctx.beginPath(); ctx.arc(4.5,-9,3.6,0,TAU); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-1,-10); ctx.lineTo(1,-10); ctx.stroke();
+  ctx.fillStyle=CEL;                                                // olhos
+  ctx.beginPath(); ctx.arc(-4.5,-9,1.2,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(4.5,-9,1.2,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function drawCarFront(){   // carro Noddy de frente (a descer); topo = traseira
+  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,64,44,12,0,0,TAU); ctx.fill();
+  drawWheelBack(-42,26); drawWheelBack(42,26);
+  ctx.fillStyle='#d92f23'; ctx.strokeStyle=CEL; ctx.lineWidth=2.4;
+  rr(ctx,-49,6,18,50,9); ctx.fill(); ctx.stroke();
+  rr(ctx,31,6,18,50,9); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#ffd23f';
+  ctx.beginPath();
+  ctx.moveTo(-26,-60); ctx.lineTo(26,-60); ctx.quadraticCurveTo(37,-60,37,-30);
+  ctx.lineTo(37,48); ctx.quadraticCurveTo(37,60,26,60); ctx.lineTo(-26,60);
+  ctx.quadraticCurveTo(-37,60,-37,48); ctx.lineTo(-37,-30); ctx.quadraticCurveTo(-37,-60,-26,-60);
+  ctx.closePath();
+  ctx.save(); ctx.clip();
+  ctx.fillStyle='#ffe98c'; ctx.fillRect(-37,-60,20,120);
+  ctx.fillStyle='#d99416'; ctx.fillRect(20,-60,17,120);
+  ctx.restore();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.6; ctx.stroke();
+  // grelha e faróis dianteiros (em baixo, que é a frente do carro a descer)
+  ctx.fillStyle='#c3c9cf'; rr(ctx,-14,40,28,15,4); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,-14,40,28,15,4); ctx.stroke();
+  ctx.strokeStyle='#5a6068'; ctx.lineWidth=1;
+  for(let i=-10;i<=10;i+=5){ ctx.beginPath(); ctx.moveTo(i,41); ctx.lineTo(i,54); ctx.stroke(); }
+  ctx.fillStyle='#eef2f6';
+  ctx.beginPath(); ctx.arc(-25,47,7,0,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(25,47,7,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(-27,45,2.4,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(23,45,2.4,0,TAU); ctx.fill();
+  ctx.fillStyle='#d9dde2'; rr(ctx,-33,57,66,7,3); ctx.fill();              // para-choques
+  // para-brisas + condutor de frente
+  ctx.fillStyle='#a8d4f0'; rr(ctx,-25,-6,50,34,10); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.2; rr(ctx,-25,-6,50,34,10); ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=3;                // brilho em risco
+  ctx.beginPath(); ctx.moveTo(-18,24); ctx.lineTo(-4,-2); ctx.stroke();
+  drawMoedasFace(0,10,1.42);
+  ctx.fillStyle='#f4b41f'; ctx.beginPath(); ctx.arc(0,-50,4.5,0,TAU); ctx.fill();  // sino
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6; ctx.stroke();
+}
+function drawUniFront(t){   // unicórnio de frente (a descer); corno para o observador
+  const gal=Math.sin(t*9);
+  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,54,38,10,0,0,TAU); ctx.fill();
+  ctx.strokeStyle='#e9e9ee'; ctx.lineWidth=8; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-13,22); ctx.lineTo(-17+gal*6,54); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(13,22); ctx.lineTo(17-gal*6,54); ctx.stroke();
+  ctx.fillStyle='#c9a54a'; ctx.fillRect(-21+gal*6,52,8,5); ctx.fillRect(13-gal*6,52,8,5);
+  // cauda arco-íris a sair por trás (para cima): abre em leque para escapar à
+  // silhueta do Moedas, senão de frente o arco-íris ficava todo tapado
+  for(let i=0;i<6;i++){ ctx.strokeStyle=`hsl(${i*55},90%,58%)`; ctx.lineWidth=4;
+    const sp=(i-2.5)/2.5;                    // -1 .. 1
+    ctx.beginPath(); ctx.moveTo(sp*5,14);
+    ctx.quadraticCurveTo(sp*22,2+Math.sin(t*3+i)*3,sp*33,-16); ctx.stroke(); }
+  ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(0,16,25,26,0,0,TAU); ctx.fill();
+  ctx.fillStyle='#d3d5e0';
+  ctx.beginPath(); ctx.ellipse(0,16,25,26,0,-1.15,1.15); ctx.lineTo(0,16); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.6; ctx.beginPath(); ctx.ellipse(0,16,25,26,0,0,TAU); ctx.stroke();
+  // cabeça do unicórnio virada ao observador, por baixo (a frente)
+  ctx.fillStyle='#f7f7fb'; ctx.beginPath(); ctx.ellipse(0,40,15,13,0,0,TAU); ctx.fill();
+  ctx.fillStyle='#e2e4ec';
+  ctx.beginPath(); ctx.ellipse(0,40,15,13,0,-1.1,1.1); ctx.lineTo(0,40); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=2.2; ctx.beginPath(); ctx.ellipse(0,40,15,13,0,0,TAU); ctx.stroke();
+  ctx.fillStyle='#f5c6dd'; ctx.beginPath(); ctx.ellipse(0,47,7,5,0,0,TAU); ctx.fill();   // focinho
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6; ctx.stroke();
+  ctx.fillStyle=CEL;                                                   // narinas + olhos
+  ctx.beginPath(); ctx.arc(-2.6,47,1,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(2.6,47,1,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(-6.5,37,1.8,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(6.5,37,1.8,0,TAU); ctx.fill();
+  ctx.fillStyle='#f2f2f7'; ctx.strokeStyle=CEL; ctx.lineWidth=1.6;      // orelhas
+  ctx.beginPath(); ctx.moveTo(-11,31); ctx.lineTo(-14,23); ctx.lineTo(-7,28); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(11,31); ctx.lineTo(14,23); ctx.lineTo(7,28); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#ffd23f';                                             // corno de frente
+  ctx.beginPath(); ctx.moveTo(0,20); ctx.lineTo(-3.5,32); ctx.lineTo(3.5,32); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#fff2b0';
+  ctx.beginPath(); ctx.moveTo(0,20); ctx.lineTo(-1.6,32); ctx.lineTo(0.4,32); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.moveTo(0,20); ctx.lineTo(-3.5,32); ctx.lineTo(3.5,32); ctx.closePath(); ctx.stroke();
+  // Moedas em cima, de frente, braços no ar
+  ctx.lineCap='round';
+  ctx.strokeStyle=CEL; ctx.lineWidth=8;
+  ctx.beginPath(); ctx.moveTo(-8,-4); ctx.lineTo(-21,-30+gal*4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(8,-4); ctx.lineTo(21,-30-gal*4); ctx.stroke();
+  ctx.strokeStyle='#26386f'; ctx.lineWidth=6;
+  ctx.beginPath(); ctx.moveTo(-8,-4); ctx.lineTo(-21,-30+gal*4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(8,-4); ctx.lineTo(21,-30-gal*4); ctx.stroke();
+  ctx.fillStyle='#f2cba2'; ctx.strokeStyle=CEL; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.arc(-22,-33+gal*4,4,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(22,-33-gal*4,4,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.lineCap='butt';
+  drawMoedasFace(0,-4,1.5);
+}
+function drawBikeFront(x,y,s,v){   // bicicleta Gira de frente; cartaz atrás do ciclista
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(0,27,10,4,0,0,TAU); ctx.fill();
+  ctx.save(); ctx.translate(0,-31); ctx.rotate((v%2?1:-1)*0.05);       // cartaz visto de trás
+  ctx.fillStyle='#7a6a4c'; ctx.fillRect(-1.5,6,3,18);
+  ctx.fillStyle='#c2b087'; rr(ctx,-17,-11,34,22,2); ctx.fill();
+  ctx.fillStyle='#a89873'; ctx.fillRect(-17,2,34,9);
+  ctx.strokeStyle=CEL; ctx.lineWidth=2; rr(ctx,-17,-11,34,22,2); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle='#1b1b20'; rr(ctx,-4,4,8,23,3); ctx.fill();            // roda da frente
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6; rr(ctx,-4,4,8,23,3); ctx.stroke();
+  ctx.fillStyle='#79b52d'; rr(ctx,-6,1,12,9,2); ctx.fill();            // guarda-lama verde
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.6; rr(ctx,-6,1,12,9,2); ctx.stroke();
+  ctx.strokeStyle='#c8ccd0'; ctx.lineWidth=2.5;                        // guiador
+  ctx.beginPath(); ctx.moveTo(-9,-7); ctx.lineTo(9,-7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,3); ctx.lineTo(0,-7); ctx.stroke();
+  ctx.fillStyle=BIKE_JACKETS[v%5]; rr(ctx,-8,-12,16,17,6); ctx.fill();  // ciclista de frente
+  ctx.fillStyle='rgba(0,0,0,.2)'; rr(ctx,2,-12,6,17,4); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,-8,-12,16,17,6); ctx.stroke();
+  ctx.fillStyle='#f2cba2'; ctx.beginPath(); ctx.arc(0,-14,4,0,TAU); ctx.fill();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle=BIKE_HAIR[v%5]; ctx.beginPath(); ctx.arc(0,-16,5,Math.PI,TAU); ctx.fill();
+  ctx.fillStyle=CEL;                                                   // olhos
+  ctx.beginPath(); ctx.arc(-1.5,-14,0.8,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(1.5,-14,0.8,0,TAU); ctx.fill();
+  ctx.restore();
+}
 function drawMoedasEnt(m){
   const t=performance.now()*0.001;
   const goingUp = Math.sin(m.ang)>0.5;      // rumo maioritariamente a subir
+  const goingDown = Math.sin(m.ang)<-0.5;   // a descer: frame de frente
   const lean = Math.cos(m.ang)*0.32;        // inclinação lateral no frame vertical
   const f=faceOf(m);
   const tilt=-Math.sin(m.ang)*0.38;
@@ -2061,6 +2221,7 @@ function drawMoedasEnt(m){
     }
     ctx.save(); ctx.translate(sx(m.x), w2s(m.y));
     if(goingUp){ ctx.scale(0.5,0.5); ctx.rotate(lean); drawUniRear(t); }
+    else if(goingDown){ ctx.scale(0.5,0.5); ctx.rotate(-lean); drawUniFront(t); }
     else { ctx.scale(f*0.5,0.5); ctx.rotate(tilt); drawUniSide(0,0,1,t); }
     ctx.restore();
   } else {
@@ -2075,6 +2236,7 @@ function drawMoedasEnt(m){
         life:1.9, g:0, r:rand(9,15), col:'rgba(58,58,64,0.45)'});
     ctx.save(); ctx.translate(sx(m.x), w2s(m.y));
     if(goingUp){ ctx.scale(0.45,0.45); ctx.rotate(lean); drawCarRear(); }
+    else if(goingDown){ ctx.scale(0.45,0.45); ctx.rotate(-lean); drawCarFront(); }
     else { ctx.scale(f*0.45,0.45); ctx.rotate(tilt); drawCarSide(0,0,1,false); }
     ctx.restore();
   }
@@ -2083,20 +2245,27 @@ const BIKE_FRQ=[1.9,2.3,1.7,2.6,2.1], BIKE_PH=[0,1.7,3.1,4.4,0.9];
 function drawLisboetasEnt(l){
   const t=performance.now()*0.001;
   const goingUp = Math.sin(l.ang)>0.5;
+  const goingDown = Math.sin(l.ang)<-0.5;
   const lean = Math.cos(l.ang)*0.28;
   const f=faceOf(l);
   const tilt=-Math.sin(l.ang)*0.34;
   const bx=sx(l.x), by=w2s(l.y);
-  const offs=[[0,-13],[-26,-5],[26,-5],[-13,7],[13,7]];   // líder à frente/cima
+  // líder à frente do pelotão: em cima a subir, em baixo a descer
+  const offs = goingDown ? [[0,13],[-26,5],[26,5],[-13,-7],[13,-7]]
+                         : [[0,-13],[-26,-5],[26,-5],[-13,7],[13,7]];
   ctx.save(); ctx.translate(bx,by);
-  if(goingUp){ ctx.rotate(lean); } else { ctx.scale(f,1); ctx.rotate(tilt); }
+  if(goingUp){ ctx.rotate(lean); }
+  else if(goingDown){ ctx.rotate(-lean); }
+  else { ctx.scale(f,1); ctx.rotate(tilt); }
   for(let i=0;i<l.riders;i++){
     // cada ciclista oscila com fase/frequência próprias — grupo orgânico
     const ox=offs[i][0]+Math.sin(t*BIKE_FRQ[i]+BIKE_PH[i])*4.5;
     const oy=offs[i][1]+Math.cos(t*BIKE_FRQ[i]*0.8+BIKE_PH[i]*1.3)*3;
     const wob=Math.sin(t*BIKE_FRQ[i]*2.6+BIKE_PH[i])*0.06;
     ctx.save(); ctx.translate(ox,oy); ctx.rotate(wob);
-    if(goingUp) drawBikeRear(0,0,0.62,i); else drawBikeSide(0,0,0.62,false,i);
+    if(goingUp) drawBikeRear(0,0,0.62,i);
+    else if(goingDown) drawBikeFront(0,0,0.62,i);
+    else drawBikeSide(0,0,0.62,false,i);
     ctx.restore();
   }
   ctx.restore();
