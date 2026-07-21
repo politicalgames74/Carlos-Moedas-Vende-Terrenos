@@ -40,14 +40,17 @@ let SAFE = {t:0,r:0,b:0,l:0};   // insets de safe-area (declarado antes do 1º r
 const LOFI = document.createElement('canvas');
 const LCTX = LOFI.getContext('2d');
 let PIXD = 2;                        // divisor da resolução virtual
+let lofiOn = false;                  // só em ecrãs pequenos; desktop fica nítido
 let inLofi = false; const crispQ = [];
 function crisp(fn){ if(inLofi) crispQ.push(fn); else fn(); }
 function lofiBegin(){
+  if(!lofiOn) return;              // desktop: desenha directo, sem grelha
   inLofi = true; ctx = LCTX;
   ctx.setTransform(DPR/PIXD,0,0,DPR/PIXD,0,0);
   ctx.clearRect(0,0,W,H);
 }
 function lofiEnd(){
+  if(!lofiOn) return;
   inLofi = false; ctx = MCTX;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(LOFI, 0,0,LOFI.width,LOFI.height, 0,0,W,H);
@@ -62,12 +65,17 @@ function resize(){
   cv.width = W*DPR; cv.height = H*DPR;
   cv.style.width = W+'px'; cv.style.height = H+'px';
   MCTX.setTransform(DPR,0,0,DPR,0,0);
-  PIXD = W>=1000 ? 2 : 1.5;          // ecrãs pequenos: grelha mais fina p/ legibilidade
-  // O buffer é criado em pixels FÍSICOS. Antes dividia só a resolução CSS e
-  // ignorava o DPR, por isso num ecrã retina a perda duplicava: o mundo era
-  // ampliado 4x e sobravam 6% dos pixels. Assim a ampliação é sempre PIXD.
-  LOFI.width  = Math.ceil(W*DPR/PIXD);
-  LOFI.height = Math.ceil(H*DPR/PIXD);
+  // Em desktop a passagem lo-fi é saltada: o mundo desenha-se directo ao ecrã,
+  // à resolução toda. Fica reservada aos ecrãs pequenos, onde a grelha ajuda a
+  // legibilidade e poupa trabalho.
+  lofiOn = W < 1000;
+  PIXD = 1.5;
+  if(lofiOn){
+    // O buffer é criado em pixels FÍSICOS. Se dividisse só a resolução CSS,
+    // ignorando o DPR, num ecrã retina a perda duplicava.
+    LOFI.width  = Math.ceil(W*DPR/PIXD);
+    LOFI.height = Math.ceil(H*DPR/PIXD);
+  }
   if(typeof readSafe==='function') readSafe();
 }
 window.addEventListener('resize', resize);
@@ -465,31 +473,39 @@ function paintPortraitR(g,mood){
     g.beginPath(); g.moveTo(114,95); g.lineTo(116,103); g.stroke();
   }
 
-  // ---------------- olhos à anime ----------------
-  for(const s of [-1,1]){
-    const ex=110+s*25, ix=ex-s*1.4;
-    g.fillStyle='#ffffff';
-    g.beginPath(); g.moveTo(ex-8,115); g.quadraticCurveTo(ex,112,ex+8,115);
-    g.lineTo(ex+7,121); g.quadraticCurveTo(ex,124.5,ex-7,121); g.closePath(); g.fill();
-    g.fillStyle='#432b16';
-    g.beginPath(); g.ellipse(ix,117.6,3.2,4.4,0,0,TAU); g.fill();
-    g.fillStyle='#150d08';
-    g.beginPath(); g.ellipse(ix,117.8,1.6,2.2,0,0,TAU); g.fill();
-    g.fillStyle='#ffffff'; g.beginPath(); g.arc(ix-1.2,115.6,1.1,0,TAU); g.fill();
-    g.strokeStyle='#20191d'; g.lineWidth=3.2;
-    g.beginPath(); g.moveTo(ex-9,114.5); g.quadraticCurveTo(ex,111,ex+9,114.5); g.stroke();
-    g.strokeStyle='#b98a66'; g.lineWidth=1.3;
-    g.beginPath(); g.moveTo(ex-6,122.8); g.quadraticCurveTo(ex,124.8,ex+6,122.8); g.stroke();
-  }
+  // ---------------- olhos ----------------
   if(sad){
+    // apertados à anime: "> <", com os vértices virados para o nariz
+    g.save(); g.lineCap='round'; g.lineJoin='round';
     for(const s of [-1,1]){
-      const x0=110+s*32;
-      g.fillStyle='#aadcf5';
-      g.beginPath(); g.moveTo(x0-3.5*s,130); g.lineTo(x0+3.5*s,131);
-      g.lineTo(x0+8*s,192); g.lineTo(x0-1*s,190); g.closePath(); g.fill();
-      g.strokeStyle='#5b9cc7'; g.lineWidth=1.6; g.stroke();
-      g.strokeStyle='rgba(255,255,255,.75)'; g.lineWidth=1.6;
-      g.beginPath(); g.moveTo(x0,134); g.lineTo(x0+4*s,186); g.stroke();
+      const ex=110+s*25;
+      g.strokeStyle='#20191d'; g.lineWidth=4.2;
+      g.beginPath();
+      g.moveTo(ex+s*9.5, 109.5);
+      g.lineTo(ex-s*7.5, 117.5);
+      g.lineTo(ex+s*9.5, 125.5);
+      g.stroke();
+    }
+    g.restore();
+    // rubor do esforço de chorar
+    g.fillStyle='rgba(206,104,90,.28)';
+    g.beginPath(); g.ellipse(85,127,8,3.4,0,0,TAU); g.fill();
+    g.beginPath(); g.ellipse(135,127,8,3.4,0,0,TAU); g.fill();
+  } else {
+    for(const s of [-1,1]){
+      const ex=110+s*25, ix=ex-s*1.4;
+      g.fillStyle='#ffffff';
+      g.beginPath(); g.moveTo(ex-8,115); g.quadraticCurveTo(ex,112,ex+8,115);
+      g.lineTo(ex+7,121); g.quadraticCurveTo(ex,124.5,ex-7,121); g.closePath(); g.fill();
+      g.fillStyle='#432b16';
+      g.beginPath(); g.ellipse(ix,117.6,3.2,4.4,0,0,TAU); g.fill();
+      g.fillStyle='#150d08';
+      g.beginPath(); g.ellipse(ix,117.8,1.6,2.2,0,0,TAU); g.fill();
+      g.fillStyle='#ffffff'; g.beginPath(); g.arc(ix-1.2,115.6,1.1,0,TAU); g.fill();
+      g.strokeStyle='#20191d'; g.lineWidth=3.2;
+      g.beginPath(); g.moveTo(ex-9,114.5); g.quadraticCurveTo(ex,111,ex+9,114.5); g.stroke();
+      g.strokeStyle='#b98a66'; g.lineWidth=1.3;
+      g.beginPath(); g.moveTo(ex-6,122.8); g.quadraticCurveTo(ex,124.8,ex+6,122.8); g.stroke();
     }
   }
 
