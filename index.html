@@ -59,6 +59,18 @@ function readSafe(){
 readSafe();
 { const h=document.getElementById('hint'); if(h) h.textContent = IS_TOUCH ? '' : 'Setas para mover • ESC menu'; }
 function joyRadius(){ return Math.max(46, Math.min(W,H)*0.12); }
+// O joystick vive nos dois cantos de baixo (serve destros e canhotos) para
+// não tapar o meio do ecrã, que é por onde se joga.
+function joyZone(x,y){
+  const R=joyRadius();
+  const zw=Math.max(R*2.4, W*0.32), zh=Math.max(R*2.4, H*0.46);
+  if(y < H-zh) return null;
+  return x < zw ? 'l' : (x > W-zw ? 'r' : null);
+}
+function joyHome(side){
+  const R=joyRadius(), m=R*0.95+10;
+  return { x: side==='l' ? SAFE.l+m : W-SAFE.r-m, y: H-SAFE.b-m-6 };
+}
 function pauseBtnRect(){ const s=Math.max(40, Math.min(W,H)*0.072); return {x:W-SAFE.r-s-12, y:SAFE.t+62, w:s, h:s}; }
 function inPauseBtn(x,y){ if(!IS_TOUCH) return false; const b=pauseBtnRect(); return x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h; }
 function updateTouchDir(){
@@ -88,8 +100,16 @@ cv.addEventListener('pointerdown', e=>{
   const x=e.clientX-r.left, y=e.clientY-r.top;
   mouse.x=x; mouse.y=y;
   if((state==='play'||state==='countdown') && inPauseBtn(x,y)){ mouse.clicked=true; return; }
-  if(IS_TOUCH && state==='play' && !joy.active){   // toque em qualquer sítio = joystick
-    joy.active=true; joy.id=e.pointerId; joy.cx=x; joy.cy=y; joy.dx=0; joy.dy=0; updateTouchDir(); return;
+  if(IS_TOUCH && state==='play' && !joy.active){   // só nos cantos de baixo
+    const z=joyZone(x,y);
+    if(z){
+      const R=joyRadius();
+      // âncora onde o polegar tocou, mas presa ao canto (nunca invade o meio)
+      joy.active=true; joy.id=e.pointerId;
+      joy.cx=clamp(x, SAFE.l+R*0.7, W-SAFE.r-R*0.7);
+      joy.cy=clamp(y, R*0.7, H-SAFE.b-R*0.7);
+      joy.dx=0; joy.dy=0; updateTouchDir(); return;
+    }
   }
   mouse.clicked=true;
 });
@@ -447,6 +467,48 @@ function paintPortraitR(g,mood){
 }
 const BIKE_JACKETS=['#4a5a8f','#8f3a3a','#5a6b2f','#7a4a8f','#b8762a'];
 const BIKE_HAIR=['#2c2c30','#6b4a2f','#9aa0a6','#1a1a1e','#8f5a2f'];
+
+// ===== pixel-art foundation (chunky-but-detailed / HD-2D 16-bit) =====
+// Sprites drawn on a coarse logical grid, then blitted with smoothing OFF:
+// crisp visible pixels, but dense detail and rich shading ramps.
+function mkPix(pw,ph,fn){
+  const c=document.createElement('canvas'); c.width=pw; c.height=ph;
+  const g=c.getContext('2d'); g.imageSmoothingEnabled=false;
+  fn(g,pw,ph); c.__pix=true; return c;
+}
+function blitPix(dst,img,x,y,w,h){
+  const sm=dst.imageSmoothingEnabled; dst.imageSmoothingEnabled=false;
+  dst.drawImage(img,x,y,w,h); dst.imageSmoothingEnabled=sm;
+}
+// pixel primitives (integer grid)
+function pRect(g,x,y,w,h,c){ g.fillStyle=c; g.fillRect(x|0,y|0,w|0,h|0); }
+function pSet(g,x,y,c){ g.fillStyle=c; g.fillRect(x|0,y|0,1,1); }
+function pHline(g,x,y,w,c){ g.fillStyle=c; g.fillRect(x|0,y|0,w|0,1); }
+function pVline(g,x,y,h,c){ g.fillStyle=c; g.fillRect(x|0,y|0,1,h|0); }
+// checkerboard dither of colour c over a region — blends toward the pixels beneath
+function pDither(g,x,y,w,h,c,inv){ g.fillStyle=c;
+  for(let j=0;j<h;j++) for(let i=0;i<w;i++) if(((i+j)&1)===(inv?1:0)) g.fillRect((x+i)|0,(y+j)|0,1,1); }
+// filled disc on the pixel grid
+function pDisc(g,cx,cy,r,c){ g.fillStyle=c;
+  for(let j=-r;j<=r;j++) for(let i=-r;i<=r;i++) if(i*i+j*j<=r*r+r*0.4) g.fillRect((cx+i)|0,(cy+j)|0,1,1); }
+
+// ---- Lisbon palettes (limited but rich ramps: dark → light) ----
+const PAL={
+  terra:['#5e2a1b','#853721','#b0492b','#cf6338','#ea855a'],   // telha / terracotta
+  cream:['#8f866c','#b7ac8c','#d8cfb0','#efe7cd'],             // calçada / stone
+  azul :['#20456f','#3a6ea8','#7aa6d2','#e9f0f6'],             // azulejo blues + grout
+  court:['#3f5c2a','#5c8038','#7aa64e'],                       // courtyard greenery
+  win  :['#20222c','#3d5570','#8fb6d6'],                       // windows: frame/glass/hi
+  wood :['#5a3c1f','#8a5a2f','#b98a4e'],
+  dark :'#1c150f'                                              // universal ink outline
+};
+// pastéis de fachada (Lisbon facade pastels), pixel ramps [shadow, base, light]
+const FACADE_PX=[
+  ['#c9ab72','#f5d7a0','#fde9c2'],['#c98f80','#f0b8a8','#fad9cf'],
+  ['#8fb0c0','#cfe0e8','#eef5f9'],['#c9b878','#f7e8b0','#fdf4d4'],
+  ['#c08a98','#e8b8c4','#f6dde4'],['#a6c090','#d5e8c8','#eef7e6'],
+  ['#c39866','#f2c898','#fbe4c4'],['#c0b298','#efe0cc','#f8efe0']
+];
 // ================= CITY TILES =================
 const ROOFS=[['#c96b4a','#96432c'],['#b85c3e','#8a3e26'],['#d1785a','#a04f36'],['#a85234','#7c3a22'],
              ['#c26246','#8f4630'],['#bd6a52','#8c4a36'],['#b0563b','#823c27'],['#ca7350','#985238']];
@@ -524,6 +586,60 @@ function mkBuilding(v){ return mkTile(g=>{
   // fachada sul: pastel de Lisboa; algumas (v par múltiplo de 4+1) com azulejos
   wallBand(g,16,S-32,S-15,30,FACADES[v%FACADES.length], v%4===1);
 });}
+// ---- pixel-art Lisbon block (chunky-but-detailed, top-down hip roof) ----
+function mkBuildingPx(v){ return mkPix(64,78,(g)=>{
+  const R=mulberry32(v*77+13);
+  const T=PAL.terra, C=PAL.cream, D=PAL.dark;
+  function diag(x0,y0,x1,y1,c){ g.fillStyle=c; const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));
+    for(let k=0;k<=n;k++) g.fillRect((x0+(x1-x0)*k/n)|0,(y0+(y1-y0)*k/n)|0,1,1); }
+  // ---- calçada portuguesa base (block footprint) ----
+  pRect(g,0,0,64,74,C[1]);
+  pDither(g,0,0,64,74,C[2]);            // light chips
+  pDither(g,0,0,64,74,C[0],true);       // dark chips
+  pRect(g,0,0,64,1,C[0]); pRect(g,0,73,64,1,C[0]); pRect(g,0,0,1,74,C[0]); pRect(g,63,0,1,74,C[0]);
+  g.clearRect(0,0,1,1); g.clearRect(63,0,1,1); g.clearRect(0,73,1,1); g.clearRect(63,73,1,1);
+  // ---- four-sloped terracotta roof ----
+  const rx=4,ry=4,rw=56,rh=54;
+  pRect(g,rx,ry,rw,rh,T[2]);
+  pDither(g,rx,ry,rw,rh>>1,T[3]);              // sun side (upper) lighter
+  pDither(g,rx,ry+(rh>>1),rw,rh>>1,T[1],true); // lower shade
+  pDither(g,rx+(rw>>1),ry,rw>>1,rh,T[1],true); // right shade
+  for(let yy=ry+2; yy<ry+rh-1; yy+=3) pHline(g,rx+1,yy,rw-2,T[1]);   // telha courses
+  pHline(g,rx,ry,rw,T[4]); pVline(g,rx,ry,rh,T[4]);                  // sun-edge highlight
+  pRect(g,rx-1,ry-1,rw+2,1,D); pRect(g,rx-1,ry+rh,rw+2,1,D); pRect(g,rx-1,ry-1,1,rh+2,D); pRect(g,rx+rw,ry-1,1,rh+2,D);
+  // ---- ridge hole = interior courtyard, hip diagonals to its corners ----
+  const ix=18,iy=17,iw=28,ih=26;
+  diag(rx,ry,ix,iy,T[0]); diag(rx+rw-1,ry,ix+iw-1,iy,T[0]);
+  diag(rx,ry+rh-1,ix,iy+ih-1,T[0]); diag(rx+rw-1,ry+rh-1,ix+iw-1,iy+ih-1,T[0]);
+  const paved = v%3!==0;
+  pRect(g,ix,iy,iw,ih, paved?C[1]:PAL.court[0]);
+  if(paved) pDither(g,ix,iy,iw,ih,C[0],true);
+  else { pDither(g,ix,iy,iw,ih,PAL.court[1]);
+    for(let i=0;i<3;i++){ const tx=ix+3+(R()*(iw-6))|0, ty=iy+3+(R()*(ih-6))|0;
+      pDisc(g,tx,ty,3,PAL.court[0]); pDisc(g,tx-1,ty-1,2,PAL.court[2]); } }
+  pRect(g,ix-1,iy-1,iw+2,1,D); pRect(g,ix-1,iy+ih,iw+2,1,D); pRect(g,ix-1,iy-1,1,ih+2,D); pRect(g,ix+iw,iy-1,1,ih+2,D);
+  // ---- lisbon chimneys (light body, dark cap) ----
+  const nCh=3+((R()*2)|0);
+  for(let i=0;i<nCh;i++){ const cx=6+(R()*(rw-8))|0, cy=(R()<0.5? ry+1+R()*8 : ry+rh-6+R()*4)|0;
+    pRect(g,cx,cy,4,4,C[2]); pRect(g,cx,cy,4,1,PAL.wood[0]); pSet(g,cx,cy+3,D); pSet(g,cx+3,cy+3,D); }
+  // ---- rooftop feature by variant ----
+  if(v%4===2){ for(let i=0;i<3;i++){ const ax=rx+3+(R()*(rw-8))|0, ay=ry+3+(R()*(rh-8))|0;
+      pRect(g,ax,ay,5,4,'#c9cdd2'); pRect(g,ax,ay,5,1,'#eef0f2'); pRect(g,ax,ay+3,5,1,D); } }         // ACs
+  else if(v%4===3){ pRect(g,rx+rw-20,ry+3,16,10,PAL.wood[2]);
+      for(let i=0;i<5;i++) pVline(g,rx+rw-19+i*3,ry+3,10,PAL.wood[1]);
+      pDisc(g,rx+rw-17,ry+11,2,PAL.court[1]); pDisc(g,rx+6,ry+rh-6,2,PAL.court[1]); }                  // pérgula
+  else if(v%4===1){ pHline(g,rx+4,ry+8,rw-8,'#9a9488'); const lc=['#d05a5a','#5a8fd0','#e0c85a','#7ad08a'];
+      for(let i=0;i<6;i++) pRect(g,rx+6+i*7,ry+8,3,4,lc[i%4]); }                                       // estendal
+  // ---- south facade (pastel + azulejo + janelas + porta) ----
+  const F=FACADE_PX[v%FACADE_PX.length], fy=62, fh=16;
+  pRect(g,4,fy,56,fh,F[1]); pHline(g,4,fy,56,F[2]); pDither(g,4,fy+fh-5,56,5,F[0]);
+  if(v%4===1) for(let yy=fy+1;yy<fy+fh-4;yy+=3) for(let xx=5;xx<59;xx+=3)
+      pRect(g,xx,yy,2,2, ((xx+yy)&2)?PAL.azul[1]:PAL.azul[2]);
+  for(let i=0;i<5;i++){ const wx=8+i*10, wy=fy+3;
+    pRect(g,wx,wy,5,7,PAL.win[0]); pRect(g,wx+1,wy+1,3,3,PAL.win[2]); pRect(g,wx+1,wy+4,3,2,PAL.win[1]); }
+  pRect(g,30,fy+fh-7,5,7,PAL.wood[0]); pSet(g,33,fy+fh-4,'#d8c060');
+  pRect(g,3,fy-1,58,1,D); pRect(g,3,fy+fh,58,1,D); pRect(g,3,fy-1,1,fh+1,D); pRect(g,60,fy-1,1,fh+1,D);
+}); }
 function mkGarden(){ return mkTile(g=>{
   tileBase(g);
   // lawn with mow stripes
@@ -1098,13 +1214,40 @@ function paintLisbonFlag(g,w,h){
   }
   g.restore();
 }
+// ---- pixel-art rear car (Noddy, a subir; topo = frente), condutor embutido ----
+function mkCarRearPx(){ return mkPix(30,36,(g)=>{
+  const D=PAL.dark;
+  const RED=['#6f1109','#b3271b','#d92f23','#f2574a'];
+  const YEL=['#9a6a0e','#d99a18','#ffdf5e','#fff2ac'];
+  const HAIR=['#8b9199','#c2c6cb','#edf0f3'], NAVY=['#12233f','#22375c','#3a5a92'];
+  pDither(g,4,33,22,3,'rgba(0,0,0,.45)');                              // sombra
+  pRect(g,3,20,4,12,'#141419'); pRect(g,23,20,4,12,'#141419');        // rodas
+  pVline(g,3,20,12,'#3a3a42'); pVline(g,23,20,12,'#3a3a42');
+  pRect(g,4,8,4,18,RED[1]); pRect(g,22,8,4,18,RED[1]);                // guarda-lamas
+  pVline(g,4,8,18,RED[0]); pVline(g,25,8,18,RED[0]); pVline(g,5,8,18,RED[3]);
+  pRect(g,7,2,16,28,YEL[2]);                                          // corpo
+  pRect(g,7,2,3,28,YEL[1]); pRect(g,20,2,3,28,YEL[1]);
+  pVline(g,7,3,26,YEL[0]); pVline(g,22,3,26,YEL[0]); pRect(g,9,2,6,2,YEL[3]);
+  pSet(g,7,2,YEL[1]); pSet(g,22,2,YEL[1]); pSet(g,7,29,YEL[1]); pSet(g,22,29,YEL[1]);
+  pRect(g,6,1,17,1,D); pRect(g,6,30,17,1,D); pRect(g,6,1,1,30,D); pRect(g,22,1,1,30,D);
+  pRect(g,6,29,18,2,'#c6cace'); pHline(g,6,29,18,'#eef0f2');          // para-choques
+  pRect(g,8,28,2,2,RED[3]); pRect(g,20,28,2,2,RED[3]);                // faróis traseiros
+  pRect(g,14,0,2,2,'#f4b41f');                                        // sino
+  pRect(g,10,13,10,12,RED[0]); pRect(g,11,14,8,3,RED[1]);             // cockpit
+  pRect(g,10,22,10,3,'#5a0f08');                                      // banco
+  pRect(g,11,17,8,5,NAVY[1]); pVline(g,15,17,5,NAVY[0]); pHline(g,11,17,8,NAVY[2]); // ombros
+  pRect(g,14,13,2,3,'#e0b088');                                       // pescoço
+  pDisc(g,15,10,4,HAIR[0]); pDisc(g,14,9,3,HAIR[1]); pRect(g,13,9,5,1,HAIR[2]);     // cabelo grisalho
+  pSet(g,11,10,'#e0b088'); pSet(g,19,10,'#e0b088');                   // orelhas
+}); }
 // build all sprites once
 const SPR={}, TILE={};
 function buildSprites(){
+  SPR.carRearPx=mkCarRearPx();
   SPR.portraitSmile=mkCanvas(220,300,g=>paintPortraitR(g,'smile'));
   SPR.portraitCry=mkCanvas(220,300,g=>paintPortraitR(g,'cry'));
   SPR.flag=mkCanvas(180,120,g=>paintLisbonFlag(g,180,120));
-  TILE.bld=[0,1,2,3,4,5,6,7].map(mkBuilding);
+  TILE.bld=[0,1,2,3,4,5,6,7].map(mkBuildingPx);
   TILE.garden=mkGarden();
   TILE.gas=mkGas();
   TILE.gira=mkGira(false);
@@ -1146,7 +1289,8 @@ function resolveAbandonedPlot(p){   // terreno que ficou por reclamar → fica p
   const oppSide = playerSide==='moedas' ? 'lisboetas' : 'moedas';
   p.claimedBy = oppSide;
   plotsDone++;
-  if(oppSide==='moedas'){ p.buildType = Math.random()<0.5?'condo':'hotel'; plotsSold++; }
+  if(oppSide==='moedas'){ p.buildType = Math.random()<0.5?'condo':'hotel'; plotsSold++;
+    if(p.buildType==='condo') condosBuilt++; else hotelsBuilt++; }
   else plotsSaved++;
   if(plotsDone>=TOTAL_PLOTS && state==='play') playCut('end',999);
 }
@@ -1199,6 +1343,11 @@ function isSolid(feat){ return feat && (feat.type==='building' || (feat.type==='
 // ================= ENTITIES =================
 let player, moedas, lisboetas, playerSide, camY, camX=0;
 let plotsSaved, plotsSold, plotsDone, moedasUnicorn;
+let hotelsBuilt, condosBuilt;
+// cada terreno salvo dá habitação a preços acessíveis a 50 pessoas
+const PEOPLE_PER_PLOT = 50;
+const peopleHoused = ()=> plotsSaved*PEOPLE_PER_PLOT;
+const luxCount = ()=> hotelsBuilt+condosBuilt;
 function makeMoedas(isPlayer){
   return {kind:'moedas', x:colX(2)+CELL_W/2, y:120, ang:-Math.PI/2, isPlayer, speed:0, gas:1, unicorn:false};
 }
@@ -1212,7 +1361,7 @@ function startGame(side){
   lisboetas = makeLisboetas(side==='lisboetas');
   player = side==='moedas'?moedas:lisboetas;
   camY = player.y - H*0.35;
-  plotsSaved=0; plotsSold=0; plotsDone=0;
+  plotsSaved=0; plotsSold=0; plotsDone=0; hotelsBuilt=0; condosBuilt=0;
   moedasUnicorn=false;
   particles.length=0;
   aiIdle=0; countdownT=5.6;   // 5-4-3-2-1-Partida! antes de começar
@@ -1378,15 +1527,29 @@ function drawPauseBtn(){
 function drawTouchUI(){
   if(!IS_TOUCH) return;
   drawPauseBtn();
+  const R=joyRadius();
   if(joy.active){
-    const R=joyRadius();
     ctx.fillStyle='rgba(255,255,255,.10)'; ctx.beginPath(); ctx.arc(joy.cx,joy.cy,R,0,TAU); ctx.fill();
     ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(joy.cx,joy.cy,R,0,TAU); ctx.stroke();
     ctx.fillStyle='rgba(255,210,63,.85)'; ctx.beginPath(); ctx.arc(joy.cx+joy.dx,joy.cy+joy.dy,R*0.42,0,TAU); ctx.fill();
     ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.lineWidth=2; ctx.stroke();
   } else {
-    ctx.fillStyle='rgba(255,244,220,.5)'; ctx.font='bold 13px Trebuchet MS'; ctx.textAlign='center';
-    ctx.fillText('Arrasta em qualquer sítio para conduzir', W/2, H-SAFE.b-12);
+    // marcas nos dois cantos de baixo: qualquer um funciona (destros e canhotos)
+    for(const s of ['l','r']){
+      const p=joyHome(s);
+      ctx.fillStyle='rgba(255,255,255,.06)'; ctx.beginPath(); ctx.arc(p.x,p.y,R,0,TAU); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(p.x,p.y,R,0,TAU); ctx.stroke();
+      ctx.fillStyle='rgba(255,244,220,.30)';
+      const a=R*0.42, b=R*0.17;   // cruz de direções
+      ctx.beginPath();
+      ctx.moveTo(p.x,p.y-a); ctx.lineTo(p.x+b*0.6,p.y-b); ctx.lineTo(p.x-b*0.6,p.y-b); ctx.closePath();
+      ctx.moveTo(p.x,p.y+a); ctx.lineTo(p.x+b*0.6,p.y+b); ctx.lineTo(p.x-b*0.6,p.y+b); ctx.closePath();
+      ctx.moveTo(p.x-a,p.y); ctx.lineTo(p.x-b,p.y+b*0.6); ctx.lineTo(p.x-b,p.y-b*0.6); ctx.closePath();
+      ctx.moveTo(p.x+a,p.y); ctx.lineTo(p.x+b,p.y+b*0.6); ctx.lineTo(p.x+b,p.y-b*0.6); ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle='rgba(255,244,220,.45)'; ctx.font='bold 12px Trebuchet MS'; ctx.textAlign='center';
+    ctx.fillText('Arrasta num dos cantos de baixo para conduzir', W/2, H-SAFE.b-10);
   }
 }
 // ---------- aviso de orientação (arranque touch) ----------
@@ -1679,7 +1842,8 @@ function drawFeature(f){
       else { drawPlotOpen(f,x,y); return; }
       break;
   }
-  if(tile) ctx.drawImage(tile, x-CELL_W/2, y-CELL_H/2, CELL_W, CELL_H+EXT);
+  if(tile){ const sm=ctx.imageSmoothingEnabled; if(tile.__pix) ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(tile, x-CELL_W/2, y-CELL_H/2, CELL_W, CELL_H+EXT); ctx.imageSmoothingEnabled=sm; }
 }
 function drawPlotOpen(f,x,y){
   const t=performance.now()*0.005;
@@ -1744,28 +1908,8 @@ function drawMoedasBack(x,y,s){   // cabeça e ombros de costas (cabelo grisalho
   ctx.beginPath(); ctx.moveTo(0,-19); ctx.lineTo(0,-2); ctx.stroke();
   ctx.restore();
 }
-function drawCarRear(){   // carro Noddy de trás (a subir); topo = frente
-  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,64,56,12,0,0,TAU); ctx.fill();
-  drawWheelBack(-54,26); drawWheelBack(54,26);
-  ctx.fillStyle='#d92f23'; ctx.strokeStyle='#7a120c'; ctx.lineWidth=2;
-  rr(ctx,-62,6,22,50,9); ctx.fill(); ctx.stroke();
-  rr(ctx,40,6,22,50,9); ctx.fill(); ctx.stroke();
-  const bod=ctx.createLinearGradient(-44,0,44,0);
-  bod.addColorStop(0,'#e0a018'); bod.addColorStop(0.5,'#ffdf5e'); bod.addColorStop(1,'#e0a018');
-  ctx.fillStyle=bod;
-  ctx.beginPath();
-  ctx.moveTo(-34,-60); ctx.lineTo(34,-60); ctx.quadraticCurveTo(48,-60,48,-30);
-  ctx.lineTo(48,48); ctx.quadraticCurveTo(48,60,34,60); ctx.lineTo(-34,60);
-  ctx.quadraticCurveTo(-48,60,-48,48); ctx.lineTo(-48,-30); ctx.quadraticCurveTo(-48,-60,-34,-60);
-  ctx.closePath(); ctx.fill(); ctx.strokeStyle='#8a5a10'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#d9dde2'; rr(ctx,-42,55,84,7,3); ctx.fill();               // para-choques
-  ctx.fillStyle='#c0392b';                                                  // faróis traseiros
-  ctx.beginPath(); ctx.arc(-32,51,5,0,TAU); ctx.fill(); ctx.beginPath(); ctx.arc(32,51,5,0,TAU); ctx.fill();
-  ctx.fillStyle='#a8231a'; rr(ctx,-32,-8,64,40,12); ctx.fill();             // cockpit
-  ctx.fillStyle='#7a150e'; rr(ctx,-28,18,56,12,5); ctx.fill();             // banco
-  drawMoedasBack(0,4,1.6);
-  ctx.fillStyle='#f4b41f'; ctx.beginPath(); ctx.arc(0,-50,4.5,0,TAU); ctx.fill();  // sino
-  ctx.strokeStyle='#8a5a10'; ctx.lineWidth=1.5; ctx.stroke();
+function drawCarRear(){   // carro Noddy de trás (a subir); topo = frente — sprite pixel-art
+  blitPix(ctx, SPR.carRearPx, -62, -66, 124, 132);
 }
 function drawUniRear(t){   // unicórnio de trás; cauda arco-íris a cair para o observador
   const gal=Math.sin(t*9);
@@ -1919,6 +2063,23 @@ function drawHUD(){
       ctx.fillText('🔋 PROCURA UMA DOCA GIRA!',W-240-R,50); }
   }
   ctx.restore();
+  drawPlayerStat();
+}
+// Resultado do lado do jogador, em destaque por baixo da barra do HUD.
+function drawPlayerStat(){
+  const isM = playerSide==='moedas';
+  const n = isM ? luxCount() : peopleHoused();
+  const txt = isM
+    ? '🏨 '+n+' '+(n===1?'Empreendimento de Luxo':'Empreendimentos de Luxo')
+    : '🏠 '+n+' '+(n===1?'pessoa alojada':'pessoas alojadas');
+  ctx.font='900 13px "Arial Black", Impact, sans-serif'; ctx.textAlign='left';
+  const pad=9, bw=ctx.measureText(txt).width+pad*2, bh=24;
+  const x=14+SAFE.l, y=58+SAFE.t+8;
+  ctx.fillStyle='rgba(10,13,24,.74)'; rr(ctx,x,y,bw,bh,7); ctx.fill();
+  ctx.strokeStyle= isM?'rgba(231,76,60,.85)':'rgba(143,191,63,.85)'; ctx.lineWidth=2;
+  rr(ctx,x,y,bw,bh,7); ctx.stroke();
+  ctx.fillStyle= isM?'#ffb3a8':'#c6e89a';
+  ctx.fillText(txt, x+pad, y+16.5);
 }
 // ================= MENU =================
 let menuBG=null, menuBGKey='';
@@ -2008,8 +2169,13 @@ function drawProtester(x,y,s,v,t,signLines){
     ctx.fillStyle=cb; rr(ctx,-66,-132,132,66,4); ctx.fill();
     ctx.strokeStyle='#8a774f'; ctx.lineWidth=3; rr(ctx,-66,-132,132,66,4); ctx.stroke();
     ctx.strokeStyle='rgba(138,119,79,.5)'; ctx.lineWidth=1.5; rr(ctx,-60,-126,120,54,3); ctx.stroke();
-    ctx.fillStyle='#2e2214'; ctx.font='900 13px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
-    signLines.forEach((ln,i)=>ctx.fillText(ln,0,-110+i*17));
+    ctx.fillStyle='#2e2214'; ctx.textAlign='center';
+    signLines.forEach((ln,i)=>{                    // encolhe a linha se não couber no cartão
+      ctx.font='900 13px "Arial Black", Impact, sans-serif';
+      const lw=ctx.measureText(ln).width;
+      if(lw>116) ctx.font='900 '+(13*116/lw)+'px "Arial Black", Impact, sans-serif';
+      ctx.fillText(ln,0,-110+i*17);
+    });
     ctx.restore();
     ctx.restore();
   } else {
@@ -2060,59 +2226,98 @@ function drawMenuBtn(b,col,hi,txt){
   ctx.strokeStyle='#0a0f1a'; ctx.lineWidth=3.5; rr(ctx,b.x,b.y,b.w,b.h,14); ctx.stroke();
   ctx.strokeStyle='rgba(255,240,200,.75)'; ctx.lineWidth=1.5; rr(ctx,b.x+3,b.y+3,b.w-6,b.h-6,11); ctx.stroke();
   ctx.fillStyle=hover?col:'#fff';
-  ctx.font='900 17px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
-  ctx.fillText(txt, b.x+b.w/2, b.y+b.h/2+6);
+  let fs=clamp(b.h*0.27,10,17);
+  ctx.font='900 '+fs+'px "Arial Black", Impact, sans-serif';
+  const over=ctx.measureText(txt).width/(b.w-18);
+  if(over>1){ fs=Math.max(9,fs/over); ctx.font='900 '+fs+'px "Arial Black", Impact, sans-serif'; }
+  ctx.textAlign='center';
+  ctx.fillText(txt, b.x+b.w/2, b.y+b.h/2+fs*0.35);
 }
-function greenMeterUI(x,y,w){
-  ctx.fillStyle='rgba(0,0,0,.5)'; rr(ctx,x+3,y+3,w,24,8); ctx.fill();
-  const g=ctx.createLinearGradient(0,y,0,y+24);
+function greenMeterUI(x,y,w,h){
+  h=h||24;
+  ctx.fillStyle='rgba(0,0,0,.5)'; rr(ctx,x+3,y+3,w,h,8); ctx.fill();
+  const g=ctx.createLinearGradient(0,y,0,y+h);
   g.addColorStop(0,'#5fae4a'); g.addColorStop(1,'#2c6e22');
-  ctx.fillStyle=g; rr(ctx,x,y,w,24,8); ctx.fill();
-  ctx.strokeStyle='#0a0f1a'; ctx.lineWidth=2.5; rr(ctx,x,y,w,24,8); ctx.stroke();
+  ctx.fillStyle=g; rr(ctx,x,y,w,h,8); ctx.fill();
+  ctx.strokeStyle='#0a0f1a'; ctx.lineWidth=2.5; rr(ctx,x,y,w,h,8); ctx.stroke();
   ctx.strokeStyle='rgba(10,15,26,.4)';
-  for(let i=1;i<12;i++){ ctx.beginPath(); ctx.moveTo(x+w*i/12,y); ctx.lineTo(x+w*i/12,y+24); ctx.stroke(); }
-  ctx.fillStyle='#fff'; ctx.font='900 13px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
-  ctx.fillText('DIFICULDADE MÁXIMA ☠',x+w/2,y+17);
+  for(let i=1;i<12;i++){ ctx.beginPath(); ctx.moveTo(x+w*i/12,y); ctx.lineTo(x+w*i/12,y+h); ctx.stroke(); }
+  ctx.fillStyle='#fff'; ctx.font='900 '+clamp(h*0.54,9,13)+'px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+  ctx.fillText('DIFICULDADE MÁXIMA ☠',x+w/2,y+h*0.70);
 }
-function redMeterUI(x,y,w,t){
+function redMeterUI(x,y,w,t,h){
+  h=h||32;
   const fl=(Math.sin(t*8)*0.5+0.5);
-  ctx.fillStyle='rgba(0,0,0,.5)'; rr(ctx,x+3,y+4,w,32,9); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.5)'; rr(ctx,x+3,y+4,w,h,9); ctx.fill();
   ctx.save();
   ctx.shadowColor=`rgba(255,60,40,${0.5+fl*0.5})`; ctx.shadowBlur=16+fl*14;
-  const g=ctx.createLinearGradient(0,y,0,y+32);
+  const g=ctx.createLinearGradient(0,y,0,y+h);
   g.addColorStop(0,`rgba(255,${90+fl*80|0},60,1)`); g.addColorStop(1,'#8f1210');
-  ctx.fillStyle=g; rr(ctx,x,y,w,32,9); ctx.fill();
+  ctx.fillStyle=g; rr(ctx,x,y,w,h,9); ctx.fill();
   ctx.restore();
-  ctx.strokeStyle='#0a0f1a'; ctx.lineWidth=3; rr(ctx,x,y,w,32,9); ctx.stroke();
-  ctx.strokeStyle=`rgba(255,240,120,${0.35+fl*0.65})`; ctx.lineWidth=2; rr(ctx,x+3,y+3,w-6,32-6,6); ctx.stroke();
+  ctx.strokeStyle='#0a0f1a'; ctx.lineWidth=3; rr(ctx,x,y,w,h,9); ctx.stroke();
+  ctx.strokeStyle=`rgba(255,240,120,${0.35+fl*0.65})`; ctx.lineWidth=2; rr(ctx,x+3,y+3,w-6,h-6,6); ctx.stroke();
   ctx.fillStyle= fl>0.5? '#fff':'#ffe0a0';
-  ctx.font='900 17px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
-  ctx.fillText('DIFICULDADE FÁCIL',x+w/2,y+23);
+  ctx.font='900 '+clamp(h*0.53,10,17)+'px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+  ctx.fillText('DIFICULDADE FÁCIL',x+w/2,y+h*0.72);
 }
 function drawMenu(){
   const t=performance.now()*0.001;
   buildMenuBG();
   ctx.drawImage(menuBG,0,0);
-  const cs=clamp(Math.min(W/1150,H/760),0.52,1.15); // character scale
+  const L=SAFE.l, R=SAFE.r, TT=SAFE.t, BB=SAFE.b;
+  const compact = H<560;                 // telemóvel em paisagem: pouco espaço vertical
+
+  // --- título (medido primeiro; tudo o resto encaixa por baixo) ---
+  const ts=Math.min(58, W*0.056, H*0.105);
+  const tY1=TT+Math.max(ts*0.9, H*0.11);
+  const tY2=tY1+ts*1.75;
+  const titleBottom=tY2+ts*0.35;
+
+  // --- rodapé calculado de baixo para cima: descrição → medidores → botões ---
+  const bw=Math.min(300, W*0.4, (W-L-R)*0.44);
+  const bh=compact? clamp(H*0.115,34,52) : 64;
+  const mH=compact? clamp(H*0.058,18,26) : 30;
+  const desc = compact
+    ? 'Chega primeiro aos 10 terrenos que o Carlos Moedas quer vender em Lisboa!'
+    : 'Corre para chegar primeiro aos 10 terrenos que o Carlos Moedas quer vender em Lisboa! A Câmara Municipal quer vender a investidores, enquanto que os Lisboetas querem Habitação a Preços Acessíveis.';
+  const descFs=compact? clamp(W*0.014,9,12) : Math.min(15,W*0.017);
+  const lh=compact? descFs*1.28 : Math.min(19,W*0.021);
+  ctx.font='bold '+descFs+'px Trebuchet MS';
+  const maxw=Math.min(W-L-R-40,900);
+  const dlines=[]; { let cur='';
+    for(const wd of desc.split(' ')){ const tst=cur?cur+' '+wd:wd;
+      if(ctx.measureText(tst).width>maxw){ dlines.push(cur); cur=wd; } else cur=tst; }
+    if(cur) dlines.push(cur); }
+  const descY0=H-BB-8-(dlines.length-1)*lh;
+  const meterY=descY0-lh*0.7-mH-4;
+  const by=meterY-(compact?8:10)-bh;
+
+  // --- personagens: escala e linha de chão encaixadas no vão entre título e botões ---
+  const cs=clamp(Math.min(clamp(Math.min(W/1150,H/760),0.52,1.15),(by-10-titleBottom)/250),0.26,1.15);
+  const ns=clamp(cs,0.5,1);                       // escala das placas com o nome
+  const slack=Math.max(0,((by-10-titleBottom)-(226*cs+26*ns))/2);
+  const charY=titleBottom+118*cs+slack;
   // ground shadows
+  const gL=charY, gR=charY+50*cs;      // linha de chão esquerda / direita
   ctx.fillStyle='rgba(0,0,0,.35)';
-  ctx.beginPath(); ctx.ellipse(W*0.24,H*0.66+96*cs,150*cs,18*cs,0,0,TAU); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(W*0.77,H*0.70,140*cs,20*cs,0,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(W*0.24,gL+96*cs,150*cs,18*cs,0,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(W*0.77,gR-29*cs,140*cs,20*cs,0,0,TAU); ctx.fill();
   // LEFT: the Lisboetas crowd
-  drawProtester(W*0.24-150*cs, H*0.66, cs*0.92, 3, t+2, null);
-  drawProtester(W*0.24-84*cs,  H*0.66, cs,      0, t,   SIGN_TEXTS[0]);
-  drawProtester(W*0.24+56*cs,  H*0.66, cs*1.06, 1, t+1, SIGN_TEXTS[1]);
-  drawProtester(W*0.24+178*cs, H*0.66, cs*0.96, 2, t+2.4, SIGN_TEXTS[2]);
+  drawProtester(W*0.24-150*cs, gL, cs*0.92, 3, t+2, null);
+  drawProtester(W*0.24-84*cs,  gL, cs,      0, t,   SIGN_TEXTS[0]);
+  drawProtester(W*0.24+56*cs,  gL, cs*1.06, 1, t+1, SIGN_TEXTS[1]);
+  drawProtester(W*0.24+178*cs, gL, cs*0.96, 2, t+2.4, SIGN_TEXTS[2]);
   // RIGHT: Carlos Moedas portrait + car
-  const ph=H*0.44*Math.min(1,cs+0.25), pw=ph*(220/300);
+  const ph=Math.min(H*0.44*Math.min(1,cs+0.25), 300*cs*1.15), pw=ph*(220/300);
   // car behind
-  ctx.save(); ctx.translate(W*0.77-pw*0.72, H*0.73); ctx.scale(cs*0.9,cs*0.9);
+  ctx.save(); ctx.translate(W*0.77-pw*0.72, gR); ctx.scale(cs*0.9,cs*0.9);
   drawCarSide(0,0,1,false,t);
   ctx.restore();
-  ctx.drawImage(SPR.portraitSmile, W*0.77-pw/2, H*0.73-ph, pw, ph);
+  ctx.drawImage(SPR.portraitSmile, W*0.77-pw/2, gR-ph, pw, ph);
   // sinais de € dourados a circular a cabeça
   {
-    const hy=H*0.73-ph*0.82;
+    const hy=gR-ph*0.82;
     ctx.font='900 20px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
     for(let i=0;i<4;i++){ const a=t*1.4+i*1.57;
       const ex=W*0.77+Math.cos(a)*pw*0.66, ey=hy+Math.sin(a*1.3)*H*0.07;
@@ -2122,17 +2327,19 @@ function drawMenu(){
       ctx.restore(); }
   }
   // name plates
-  ctx.font='900 15px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+  ctx.font='900 '+(15*ns)+'px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+  const npY=gL+108*cs, npH=26*ns, npW1=190*ns, npW2=210*ns;
   ctx.fillStyle='rgba(10,13,24,.85)';
-  rr(ctx,W*0.24-95,H*0.66+108*cs,190,26,6); ctx.fill();
-  rr(ctx,W*0.77-105,H*0.66+108*cs,210,26,6); ctx.fill();
-  ctx.strokeStyle='rgba(143,191,63,.8)'; ctx.lineWidth=2; rr(ctx,W*0.24-95,H*0.66+108*cs,190,26,6); ctx.stroke();
-  ctx.strokeStyle='rgba(231,76,60,.8)'; rr(ctx,W*0.77-105,H*0.66+108*cs,210,26,6); ctx.stroke();
-  ctx.fillStyle='#c6e89a'; ctx.fillText('LISBOETAS',W*0.24,H*0.66+127*cs+ (108*cs-108*cs));
-  ctx.fillStyle='#ffb3a8'; ctx.fillText('CARLOS MOEDAS',W*0.77,H*0.66+127*cs);
+  rr(ctx,W*0.24-npW1/2,npY,npW1,npH,6); ctx.fill();
+  rr(ctx,W*0.77-npW2/2,npY,npW2,npH,6); ctx.fill();
+  ctx.strokeStyle='rgba(143,191,63,.8)'; ctx.lineWidth=2; rr(ctx,W*0.24-npW1/2,npY,npW1,npH,6); ctx.stroke();
+  ctx.strokeStyle='rgba(231,76,60,.8)'; rr(ctx,W*0.77-npW2/2,npY,npW2,npH,6); ctx.stroke();
+  ctx.fillStyle='#c6e89a'; ctx.fillText('LISBOETAS',W*0.24,npY+npH*0.72);
+  ctx.fillStyle='#ffb3a8'; ctx.fillText('CARLOS MOEDAS',W*0.77,npY+npH*0.72);
   // Bandeira de Lisboa ao centro, entre os dois lados
   {
-    const fw=Math.min(190,W*0.16), fh=fw*0.62, fx=W/2, fy=H*0.47;
+    const fw=Math.min(190,W*0.16,H*0.30), fh=fw*0.62, fx=W/2;
+    const fy=Math.min(H*0.47, by-16-58-fh/2);
     ctx.fillStyle='rgba(0,0,0,.35)';
     ctx.beginPath(); ctx.ellipse(fx,fy+fh/2+58,fw*0.42,7,0,0,TAU); ctx.fill();
     ctx.strokeStyle='#6e6252'; ctx.lineWidth=5;
@@ -2146,11 +2353,10 @@ function drawMenu(){
     }
   }
   // TITLE
-  const ts=Math.min(58,W*0.056);
-  fgText('LISBOETAS', W*0.25, H*0.13, ts, GREEN_CHROME, -0.06);
-  fgText('CARLOS MOEDAS', W*0.72, H*0.13+ts*1.9, ts, RED_CHROME, 0.05);
+  fgText('LISBOETAS', W*0.25, tY1, ts, GREEN_CHROME, -0.06);
+  fgText('CARLOS MOEDAS', W*0.72, tY2, ts, RED_CHROME, 0.05);
   // VS badge
-  ctx.save(); ctx.translate(W*0.485,H*0.155); ctx.rotate(-0.1);
+  ctx.save(); ctx.translate(W*0.485,tY1+ts*0.42); ctx.rotate(-0.1);
   const vsS=Math.min(84,W*0.088)*(1+Math.sin(t*3.2)*0.045);
   const jx=Math.sin(t*19)*2.2;
   ctx.font='900 '+vsS+'px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
@@ -2166,7 +2372,9 @@ function drawMenu(){
   menuBtns=[];
   // botão de silenciar música (topo centro)
   {
-    const mbw=Math.min(160,W*0.22), b={x:W/2-mbw/2,y:8,w:mbw,h:30,act:'music'};
+    const mbw=Math.min(160,W*0.22), mbh=compact?26:30;
+    // em paisagem apertada vai para o canto superior direito, longe do título
+    const b={ x: compact? W-R-mbw-10 : W/2-mbw/2, y: TT+(compact?6:8), w:mbw, h:mbh, act:'music'};
     menuBtns.push(b);
     const hover=mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h;
     ctx.fillStyle='rgba(10,13,24,.82)'; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.fill();
@@ -2174,26 +2382,16 @@ function drawMenu(){
     ctx.fillStyle='#f4ecd7'; ctx.font='900 12px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
     ctx.fillText(musicOn?'🔊 MÚSICA: ON':'🔇 MÚSICA: OFF', b.x+b.w/2, b.y+b.h/2+4.5);
   }
-  const bw=Math.min(300,W*0.4), bh=64;
-  const by=H*0.76;
   const lb={x:W*0.24-bw/2,y:by,w:bw,h:bh,side:'lisboetas'};
   const mb={x:W*0.76-bw/2,y:by,w:bw,h:bh,side:'moedas'};
   menuBtns.push(lb,mb);
   drawMenuBtn(lb,'#2c6e22','#5fae4a','JOGAR: LISBOETAS 🚲');
-  greenMeterUI(lb.x, lb.y+bh+10, bw);
+  greenMeterUI(lb.x, meterY, bw, mH);
   drawMenuBtn(mb,'#8f1210','#e04338','JOGAR: CARLOS MOEDAS 🚗');
-  redMeterUI(mb.x, mb.y+bh+8, bw, t);
-  // game description (wrapped, full width)
-  const desc='Corre para chegar primeiro aos 10 terrenos que o Carlos Moedas quer vender em Lisboa! A Câmara Municipal quer vender a investidores, enquanto que os Lisboetas querem Habitação a Preços Acessíveis.';
-  ctx.font='bold '+Math.min(15,W*0.017)+'px Trebuchet MS'; ctx.textAlign='center';
-  const maxw=Math.min(W-60, 900);
-  const words=desc.split(' '); const dlines=[]; let cur='';
-  for(const wd of words){ const tst=cur?cur+' '+wd:wd; if(ctx.measureText(tst).width>maxw){ dlines.push(cur); cur=wd; } else cur=tst; }
-  if(cur)dlines.push(cur);
-  const lh=Math.min(19,W*0.021);
-  const y0=H-8-(dlines.length-1)*lh;
+  redMeterUI(mb.x, meterY, bw, t, mH);
+  ctx.font='bold '+descFs+'px Trebuchet MS'; ctx.textAlign='center';
   ctx.fillStyle='rgba(255,244,220,.9)';
-  dlines.forEach((ln,i)=>ctx.fillText(ln, W/2, y0+i*lh));
+  dlines.forEach((ln,i)=>ctx.fillText(ln, W/2, descY0+i*lh));
 }
 // ================= SIDE-VIEW ART (cutscenes) =================
 function drawMoedasHeadSide(x,y,s,mood){
@@ -3045,16 +3243,33 @@ function cutEnd(p){
     for(let i=0;i<6;i++) drawMover(W*0.2+i*W*0.12, H*0.6, 2.2, i, t);
   }
   banner(info.text, H*0.18, info.color, Math.min(22,W*0.028));
+  // barra de resumo: o resultado do lado que o jogador escolheu
+  {
+    const isM = playerSide==='moedas';
+    const txt = isM
+      ? luxCount()+' '+(luxCount()===1?'Empreendimento de Luxo':'Empreendimentos de Luxo')
+        +'   ('+hotelsBuilt+' 🏨  ·  '+condosBuilt+' 🏢)'
+      : peopleHoused()+' '+(peopleHoused()===1?'pessoa alojada':'pessoas alojadas')
+        +'   ('+plotsSaved+'/'+TOTAL_PLOTS+' terrenos × '+PEOPLE_PER_PLOT+')';
+    ctx.font='900 '+Math.min(20,W*0.024)+'px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+    const bw=ctx.measureText(txt).width+34, bh=Math.min(42,H*0.085);
+    const bx=W/2-bw/2, by=H*0.79-bh/2;
+    ctx.fillStyle='rgba(10,13,24,.80)'; rr(ctx,bx,by,bw,bh,10); ctx.fill();
+    ctx.strokeStyle= isM?'rgba(255,210,63,.9)':'rgba(143,191,63,.9)'; ctx.lineWidth=2.5;
+    rr(ctx,bx,by,bw,bh,10); ctx.stroke();
+    ctx.fillStyle= isM?'#ffd23f':'#c6e89a';
+    ctx.fillText(txt, W/2, by+bh/2+Math.min(7,bh*0.19));
+  }
   ctx.fillStyle='rgba(255,255,255,.75)'; ctx.font='900 15px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
   ctx.fillText('Clica ou espaço para voltar ao menu', W/2, H*0.9);
 }
 function endInfo(){
   if(playerSide==='lisboetas'){
     if(plotsSaved===0) return {text:'Oh não! O Carlos Moedas conseguiu vender todos os terrenos! Ficaram a perder Lisboa e os Lisboetas.',color:'#e74c3c',cashParty:true};
-    if(plotsSaved===TOTAL_PLOTS) return {text:'Parabéns! Conseguiste travar o Carlos Moedas e dar casa a 500 famílias!',color:'#8fbf3f',fireworks:true};
-    return {text:'Bom, pelo menos conseguiste dar casa a '+(plotsSaved*10)+' famílias.',color:'#ffd23f'};
+    if(plotsSaved===TOTAL_PLOTS) return {text:'Parabéns! Conseguiste travar o Carlos Moedas e dar casa a '+peopleHoused()+' pessoas!',color:'#8fbf3f',fireworks:true};
+    return {text:'Bom, pelo menos conseguiste dar casa a '+peopleHoused()+' pessoas.',color:'#ffd23f'};
   } else {
-    if(plotsSold===TOTAL_PLOTS) return {text:'Ahah! Travaste essa gentalha reles e garantiste Hotéis e Condomínios de Luxo para todos os investidores! Parabéns',color:'#ffd23f',fireworks:true,unicornPrance:true};
+    if(plotsSold===TOTAL_PLOTS) return {text:'Ahah! Travaste essa gentalha reles e construíste '+luxCount()+' Empreendimentos de Luxo para os teus investidores! Parabéns',color:'#ffd23f',fireworks:true,unicornPrance:true};
     if(plotsSold===0) return {text:'Ai que desgraça! Que desgraça! Os meus empreendimentos de luxo foram todos por água abaixo!',color:'#e74c3c',tantrum:true};
     return {text:'Oh não! Essa gentalha conseguiu travar '+plotsSaved+' dos empreendimentos de luxo dos meus investidores!',color:'#e77ec9',moedasCry:true};
   }
@@ -3144,7 +3359,8 @@ function checkPlots(ent, side){
       p.claimedBy=side;
       plotsDone++;
       if(side==='moedas'){ p.buildType = Math.random()<0.5? 'condo':'hotel';
-        plotsSold++; playCut('moedasWin',2.6,{condo:p.buildType==='condo'}); }
+        plotsSold++; if(p.buildType==='condo') condosBuilt++; else hotelsBuilt++;
+        playCut('moedasWin',2.6,{condo:p.buildType==='condo'}); }
       else { plotsSaved++; playCut('lisboetasWin',2.8);
         if(plotsSaved===5 && !moedasUnicorn){ pendingUnicorn=true; } }
       pendingEndCheck=true;
