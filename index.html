@@ -514,70 +514,73 @@ function paintPortraitR(g,mood){
   facePath(); g.strokeStyle=INK; g.lineWidth=2.8; g.stroke();
 
   // ---------------- cabelo: risca ao lado marcada, varrido p/ direita ----
+  // A espessura da massa de cabelo mede-se a partir do crânio (topo em y=42,
+  // têmporas em x=63/157) e é 30% menor do que era: cabelo curto, como nas
+  // fotos. A linha do cabelo não mexe — baixá-la só faria crescer a testa.
   const hairPath=()=>{
     g.beginPath();
-    g.moveTo(64,98);
-    g.bezierCurveTo(60,80,58,56,64,40);        // lado esquerdo sobe
-    g.bezierCurveTo(68,30,80,24,94,22);        // canto quadrado
-    g.bezierCurveTo(112,19,128,18,140,22);     // topo achatado a varrer
-    g.lineTo(153,27);
-    g.lineTo(159,37); g.lineTo(153,46);        // ponta 1 (suave)
-    g.lineTo(161,60); g.lineTo(155,70);        // ponta 2 (suave)
-    g.lineTo(159,86); g.lineTo(157,100);       // ponta 3 (suave)
+    g.moveTo(65,90);
+    g.bezierCurveTo(61,78,59,58,65,46);        // lado esquerdo sobe
+    g.bezierCurveTo(69,37,80,31,95,28);        // canto arredondado
+    g.bezierCurveTo(113,25,131,26,142,32);     // cúpula a acompanhar o crânio
+    g.lineTo(151,36);
+    g.lineTo(157,44); g.lineTo(152,50);        // ponta 1 (suave)
+    g.lineTo(159,63); g.lineTo(154,71);        // ponta 2 (suave)
+    g.lineTo(158,86); g.lineTo(156,90);        // ponta 3 (suave)
     // linha do cabelo (de volta, direita → risca → aba esquerda)
-    g.bezierCurveTo(155,84,152,74,146,68);     // entrada direita
+    g.bezierCurveTo(155,81,152,74,146,68);     // entrada direita
     g.bezierCurveTo(133,60,117,58,101,60);     // linha alta e recta (testa)
     g.bezierCurveTo(93,61,88,62,86,64);        // ponto da risca
-    g.bezierCurveTo(80,68,72,76,67,86);        // aba descendo p/ têmpora
-    g.bezierCurveTo(65,92,64,95,64,98);
+    g.bezierCurveTo(81,68,73,74,68,82);        // aba descendo p/ têmpora
+    g.bezierCurveTo(66,85,65,88,65,90);
     g.closePath();
   };
   hairPath(); g.fillStyle='#a9afb6'; g.fill();
   g.save(); hairPath(); g.clip();
   // aba à esquerda da risca: penteada para baixo, tom mais escuro
   g.fillStyle='#9aa0a7';
-  g.beginPath(); g.moveTo(64,98);
-  g.bezierCurveTo(60,80,58,56,64,40);
-  g.bezierCurveTo(66,34,70,29,76,26);
-  g.bezierCurveTo(76,38,79,50,86,64);
-  g.bezierCurveTo(80,68,72,76,67,86);
-  g.bezierCurveTo(65,92,64,95,64,98);
+  g.beginPath(); g.moveTo(65,90);
+  g.bezierCurveTo(61,78,59,58,65,46);
+  g.bezierCurveTo(68,40,72,35,78,32);
+  g.bezierCurveTo(77,43,80,53,86,64);
+  g.bezierCurveTo(81,68,73,74,68,82);
+  g.bezierCurveTo(66,85,65,88,65,90);
   g.closePath(); g.fill();
   // metade de trás mais escura (as pontas)
   g.fillStyle='#7d838b';
-  g.beginPath(); g.moveTo(122,20); g.bezierCurveTo(134,18,148,24,153,27);
-  g.lineTo(159,37); g.lineTo(153,46); g.lineTo(161,60); g.lineTo(155,70);
-  g.lineTo(159,86); g.lineTo(157,100);
-  g.bezierCurveTo(155,84,152,74,146,68);
+  g.beginPath(); g.moveTo(124,25); g.bezierCurveTo(134,25,147,30,151,36);
+  g.lineTo(157,44); g.lineTo(152,50); g.lineTo(159,63); g.lineTo(154,71);
+  g.lineTo(158,86); g.lineTo(156,90);
+  g.bezierCurveTo(155,81,152,74,146,68);
   g.bezierCurveTo(138,63,130,61,122,60); g.closePath(); g.fill();
   // brilho anguloso a acompanhar o varrimento (nasce junto à risca)
   g.fillStyle='#e7ebee';
-  g.beginPath(); g.moveTo(90,54); g.lineTo(102,36); g.lineTo(116,42);
-  g.lineTo(130,32); g.lineTo(142,40); g.lineTo(136,47); g.lineTo(122,38);
-  g.lineTo(108,48); g.lineTo(97,45); g.lineTo(94,58); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(91,55); g.lineTo(102,42); g.lineTo(116,47);
+  g.lineTo(130,39); g.lineTo(141,45); g.lineTo(136,51); g.lineTo(122,44);
+  g.lineTo(108,52); g.lineTo(97,49); g.lineTo(94,58); g.closePath(); g.fill();
   // madeixas a irradiar da risca para a direita
   g.strokeStyle='#565c64'; g.lineWidth=2;
-  g.beginPath(); g.moveTo(88,58); g.bezierCurveTo(106,44,130,42,152,56); g.stroke();
-  g.beginPath(); g.moveTo(87,62); g.bezierCurveTo(104,52,132,50,155,66); g.stroke();
-  g.beginPath(); g.moveTo(90,50); g.bezierCurveTo(104,38,126,34,146,40); g.stroke();
+  g.beginPath(); g.moveTo(88,58); g.bezierCurveTo(106,47,130,45,152,57); g.stroke();
+  g.beginPath(); g.moveTo(87,62); g.bezierCurveTo(104,53,132,51,155,66); g.stroke();
+  g.beginPath(); g.moveTo(90,52); g.bezierCurveTo(104,42,126,39,145,44); g.stroke();
   // madeixas da aba, penteadas para baixo-esquerda
   g.strokeStyle='#7f858c'; g.lineWidth=1.8;
-  g.beginPath(); g.moveTo(83,62); g.bezierCurveTo(76,68,70,78,67,88); g.stroke();
-  g.beginPath(); g.moveTo(79,56); g.bezierCurveTo(72,62,67,72,64,82); g.stroke();
+  g.beginPath(); g.moveTo(83,62); g.bezierCurveTo(77,67,71,74,68,84); g.stroke();
+  g.beginPath(); g.moveTo(79,56); g.bezierCurveTo(73,61,68,69,66,79); g.stroke();
   g.restore();
   hairPath(); g.strokeStyle=INK; g.lineWidth=3; g.stroke();
   // A RISCA: linha de tinta + fresta clara ao lado
   g.strokeStyle=INK; g.lineWidth=2.2;
-  g.beginPath(); g.moveTo(86,64); g.bezierCurveTo(82,54,79,45,78,36); g.stroke();
+  g.beginPath(); g.moveTo(86,64); g.bezierCurveTo(83,57,81,51,80,46); g.stroke();
   g.strokeStyle='#ced3d8'; g.lineWidth=1.4;
-  g.beginPath(); g.moveTo(89,63); g.bezierCurveTo(85,53,82,45,81,37); g.stroke();
+  g.beginPath(); g.moveTo(89,63); g.bezierCurveTo(86,56,84,51,83,47); g.stroke();
   // cabelo curto dos lados
   g.fillStyle='#8d9196';
-  g.beginPath(); g.moveTo(61,94); g.bezierCurveTo(59,108,60,118,63,126);
-  g.lineTo(68,124); g.bezierCurveTo(65,114,65,104,67,94); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(62,94); g.bezierCurveTo(60.5,108,61,117,64,124);
+  g.lineTo(68,122); g.bezierCurveTo(65.5,113,65.5,104,67,94); g.closePath(); g.fill();
   g.strokeStyle=INK; g.lineWidth=1.6; g.stroke();
-  g.beginPath(); g.moveTo(159,94); g.bezierCurveTo(161,108,160,118,157,126);
-  g.lineTo(152,124); g.bezierCurveTo(155,114,155,104,153,94); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(158,94); g.bezierCurveTo(159.5,108,159,117,156,124);
+  g.lineTo(152,122); g.bezierCurveTo(154.5,113,154.5,104,153,94); g.closePath(); g.fill();
   g.stroke();
 
   // ---------------- óculos redondos ----------------
@@ -1955,12 +1958,24 @@ function drawWheelBack(x,y){
   ctx.fillStyle='rgba(255,255,255,.14)'; rr(ctx,x-6.5,y-24,4,48,3); ctx.fill();
   ctx.fillStyle='#f2c400'; ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
 }
+// Busto do Moedas nos frames verticais: ombros descaídos com entalhe do
+// pescoço. Um retângulo cheio à mesma largura lê-se como tronco largo — o
+// entalhe e o declive dão a silhueta magra sem estrangular os ombros.
+function bustoMagro(){
+  ctx.beginPath();
+  ctx.moveTo(-5,-1); ctx.quadraticCurveTo(-12,0,-14,7);
+  ctx.lineTo(-14,11); ctx.quadraticCurveTo(-14,16,-9,16);
+  ctx.lineTo(9,16); ctx.quadraticCurveTo(14,16,14,11);
+  ctx.lineTo(14,7); ctx.quadraticCurveTo(12,0,5,-1);
+  ctx.closePath();
+  ctx.fillStyle='#26386f'; ctx.fill();
+  ctx.save(); ctx.clip(); ctx.fillStyle='#1a2850'; ctx.fillRect(5,-2,10,20); ctx.restore();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; ctx.stroke();
+}
 function drawMoedasBack(x,y,s){   // cabeça e ombros de costas (cel, com risca ao lado)
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
-  ctx.fillStyle='#26386f'; rr(ctx,-15,0,30,16,6); ctx.fill();
-  ctx.fillStyle='#1a2850'; rr(ctx,6,1,8,14,4); ctx.fill();          // plano de sombra
-  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,-15,0,30,16,6); ctx.stroke();
-  ctx.fillStyle='#f2cba2'; ctx.fillRect(-4,-5,8,7);                 // nuca
+  bustoMagro();                                                     // ombros descaídos
+  ctx.fillStyle='#f2cba2'; ctx.fillRect(-3.5,-5,7,7);               // nuca
   ctx.fillStyle='#a9afb6'; ctx.beginPath(); ctx.arc(0,-9,11,0,TAU); ctx.fill();
   ctx.fillStyle='#7d838b';                                          // plano de sombra da cabeça
   ctx.beginPath(); ctx.arc(0,-9,11,-0.6,1.2); ctx.lineTo(0,-9); ctx.closePath(); ctx.fill();
@@ -2060,9 +2075,7 @@ function drawBikeRear(x,y,s,v){   // bicicleta Gira de trás; cartaz virado para
 // redondos, barba curta. Serve os frames de descida do carro e do unicórnio.
 function drawMoedasFace(x,y,s){
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
-  ctx.fillStyle='#26386f'; rr(ctx,-15,0,30,16,6); ctx.fill();       // ombros
-  ctx.fillStyle='#1a2850'; rr(ctx,6,1,8,14,4); ctx.fill();
-  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,-15,0,30,16,6); ctx.stroke();
+  bustoMagro();                                                     // ombros descaídos
   ctx.fillStyle='#ffffff';                                          // camisa + gravata
   ctx.beginPath(); ctx.moveTo(-4,0); ctx.lineTo(4,0); ctx.lineTo(0,9); ctx.closePath(); ctx.fill();
   ctx.fillStyle='#e04a72';
@@ -2074,9 +2087,9 @@ function drawMoedasFace(x,y,s){
   ctx.beginPath(); ctx.arc(0,-7,9,0.35,Math.PI-0.35); ctx.closePath(); ctx.fill();
   ctx.strokeStyle=CEL; ctx.lineWidth=1.8; ctx.beginPath(); ctx.arc(0,-9,11,0,TAU); ctx.stroke();
   ctx.fillStyle='#a9afb6';                                          // cabelo p/ trás
-  ctx.beginPath(); ctx.arc(0,-11,11,Math.PI,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(0,-10.5,11,Math.PI,TAU); ctx.fill();
   ctx.fillStyle='#7d838b';
-  ctx.beginPath(); ctx.arc(0,-11,11,Math.PI*1.5,TAU); ctx.lineTo(0,-11); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(0,-10.5,11,Math.PI*1.5,TAU); ctx.lineTo(0,-10.5); ctx.closePath(); ctx.fill();
   ctx.strokeStyle=CEL; ctx.lineWidth=1.3;                           // risca ao lado
   ctx.beginPath(); ctx.moveTo(-4,-21); ctx.lineTo(-5,-13); ctx.stroke();
   ctx.strokeStyle=CEL; ctx.lineWidth=1.6;                           // óculos redondos
@@ -2714,9 +2727,15 @@ function drawMenu(){
 function drawMoedasHeadSide(x,y,s,mood){
   // cel-shading: cores chapadas, tinta CEL, alinhado com o retrato novo
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
-  ctx.fillStyle='#26386f'; rr(ctx,-11,2,22,18,6); ctx.fill();    // fato
-  ctx.fillStyle='#1a2850'; rr(ctx,4,3,7,16,4); ctx.fill();       // plano de sombra
-  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; rr(ctx,-11,2,22,18,6); ctx.stroke();
+  ctx.beginPath();                                               // fato: ombro descaído
+  ctx.moveTo(-3.5,1); ctx.quadraticCurveTo(-9,2,-10,7);
+  ctx.lineTo(-10,16); ctx.quadraticCurveTo(-10,20,-6,20);
+  ctx.lineTo(6,20); ctx.quadraticCurveTo(10,20,10,16);
+  ctx.lineTo(10,7); ctx.quadraticCurveTo(9,2,3.5,1);
+  ctx.closePath();
+  ctx.fillStyle='#26386f'; ctx.fill();
+  ctx.save(); ctx.clip(); ctx.fillStyle='#1a2850'; ctx.fillRect(3,0,8,22); ctx.restore();
+  ctx.strokeStyle=CEL; ctx.lineWidth=1.8; ctx.stroke();
   ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.moveTo(-2,3); ctx.lineTo(4,3); ctx.lineTo(1,12); ctx.closePath(); ctx.fill();
   ctx.fillStyle='#e04a72'; ctx.beginPath(); ctx.moveTo(0,4); ctx.lineTo(3.4,4); ctx.lineTo(2,11); ctx.closePath(); ctx.fill(); // gravata rosa
   ctx.fillStyle='#f2cba2'; ctx.beginPath(); ctx.arc(0,-6,9,0,TAU); ctx.fill();
@@ -2724,12 +2743,12 @@ function drawMoedasHeadSide(x,y,s,mood){
   ctx.fillStyle='#b0aeaa';                                       // barba cel
   ctx.beginPath(); ctx.arc(2,-3,7.5,-0.5,2.4); ctx.lineTo(0,-3); ctx.closePath(); ctx.fill();
   ctx.fillStyle='#a9afb6';                                       // cabelo p/ trás
-  ctx.beginPath(); ctx.arc(-1,-8,9,Math.PI*0.75,Math.PI*1.9); ctx.fill();
-  ctx.beginPath(); ctx.arc(-1,-11,7,Math.PI,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(-1,-7.5,9,Math.PI*0.75,Math.PI*1.9); ctx.fill();
+  ctx.beginPath(); ctx.arc(-1,-9.5,6.5,Math.PI,TAU); ctx.fill();
   ctx.fillStyle='#7d838b';                                       // plano escuro atrás
-  ctx.beginPath(); ctx.arc(-3,-9,8,Math.PI*0.75,Math.PI*1.55); ctx.lineTo(-3,-9); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(-3,-8.5,8,Math.PI*0.75,Math.PI*1.55); ctx.lineTo(-3,-8.5); ctx.closePath(); ctx.fill();
   ctx.fillStyle='#e7ebee';                                       // brilho anguloso
-  ctx.beginPath(); ctx.moveTo(-6,-15); ctx.lineTo(-1,-17.5); ctx.lineTo(3,-15.5); ctx.lineTo(-1,-14.5); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-6,-13.5); ctx.lineTo(-1,-15.5); ctx.lineTo(3,-14); ctx.lineTo(-1,-13); ctx.closePath(); ctx.fill();
   ctx.strokeStyle=CEL; ctx.lineWidth=1.9;                        // óculos redondos
   ctx.beginPath(); ctx.arc(4,-7,3.8,0,TAU); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(3,-10.5); ctx.quadraticCurveTo(-0.5,-11.6,-4,-10.6); ctx.stroke();
@@ -2998,60 +3017,60 @@ function drawMoedasFig(x,y,s,pose,t,face){
   ctx.translate(0,-jump);
   const kick = pose==='kick'? Math.max(0,Math.sin(t*9)) : 0;
   // pernas
-  ctx.strokeStyle='#22375c'; ctx.lineWidth=9; ctx.lineCap='round';
+  ctx.strokeStyle='#22375c'; ctx.lineWidth=7.5; ctx.lineCap='round';   // pernas magras
   ctx.fillStyle='#14161c';
   if(pose==='jump'){
     ctx.beginPath(); ctx.moveTo(-4,-26); ctx.lineTo(-9,-8); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(4,-26); ctx.lineTo(9,-8); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(-10,-7,5,3,-0.4,0,TAU); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(10,-7,5,3,0.4,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-10,-7,4.6,2.7,-0.4,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(10,-7,4.6,2.7,0.4,0,TAU); ctx.fill();
   } else if(pose==='kick'){
     ctx.beginPath(); ctx.moveTo(-3,-26); ctx.lineTo(-5,0); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(-7,0,5.5,3,0,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-7,0,5,2.7,0,0,TAU); ctx.fill();
     const kx=lerp(5,26,kick), ky=lerp(0,-18,kick);
     ctx.beginPath(); ctx.moveTo(3,-26); ctx.lineTo(kx,ky); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(kx+4,ky,5.5,3,kick*-0.5,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(kx+4,ky,5,2.7,kick*-0.5,0,TAU); ctx.fill();
   } else if(pose==='run'){
     const r2=Math.sin(t*14);
     const l1x=r2*13, l1y=-3-Math.max(0,r2)*9;
     const l2x=-r2*13, l2y=-3-Math.max(0,-r2)*9;
     ctx.beginPath(); ctx.moveTo(-2,-26); ctx.lineTo(l1x,l1y); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(2,-26); ctx.lineTo(l2x,l2y); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(l1x+3,l1y,5,3,r2*0.4,0,TAU); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(l2x+3,l2y,5,3,-r2*0.4,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(l1x+3,l1y,4.6,2.7,r2*0.4,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(l2x+3,l2y,4.6,2.7,-r2*0.4,0,TAU); ctx.fill();
   } else {
     ctx.beginPath(); ctx.moveTo(-3,-26); ctx.lineTo(-4,0); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(3,-26); ctx.lineTo(4,0); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(-6,0,5.5,3,0,0,TAU); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(6,0,5.5,3,0,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-6,0,5,2.7,0,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(6,0,5,2.7,0,0,TAU); ctx.fill();
   }
   // busto (fato + cabeça)
   drawMoedasHeadSide(0,-44,1.5, pose==='jump'?'smile':(pose==='stand'?'smile':'cry'));
   // braços
-  ctx.strokeStyle='#26386f'; ctx.lineWidth=7;
+  ctx.strokeStyle='#26386f'; ctx.lineWidth=6;                          // braços magros
   ctx.fillStyle='#f2cba2';
   if(pose==='jump'){
     const w2=Math.sin(t*12)*5;
     ctx.beginPath(); ctx.moveTo(-9,-38); ctx.lineTo(-19,-62+w2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(9,-38); ctx.lineTo(19,-62-w2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(-20,-64+w2,4,0,TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(20,-64-w2,4,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(-20,-64+w2,3.6,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(20,-64-w2,3.6,0,TAU); ctx.fill();
   } else if(pose==='kick'){
     ctx.beginPath(); ctx.moveTo(-9,-38); ctx.lineTo(-20,-30); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(9,-38); ctx.lineTo(16,-46); ctx.stroke();
-    ctx.beginPath(); ctx.arc(-21,-29,4,0,TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(17,-48,4,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(-21,-29,3.6,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(17,-48,3.6,0,TAU); ctx.fill();
   } else if(pose==='run'){ // braços a bombear
     const r2=Math.sin(t*14);
     ctx.beginPath(); ctx.moveTo(-9,-38); ctx.lineTo(-12-r2*8,-32-Math.abs(r2)*4); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(9,-38); ctx.lineTo(12+r2*8,-44+r2*4); ctx.stroke();
-    ctx.beginPath(); ctx.arc(-13-r2*8,-31-Math.abs(r2)*4,4,0,TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(13+r2*8,-45+r2*4,4,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(-13-r2*8,-31-Math.abs(r2)*4,3.6,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(13+r2*8,-45+r2*4,3.6,0,TAU); ctx.fill();
   } else { // cry/stand: mãos à cara
     ctx.beginPath(); ctx.moveTo(-9,-38); ctx.lineTo(-6,-52); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(9,-38); ctx.lineTo(6,-52); ctx.stroke();
-    ctx.beginPath(); ctx.arc(-5,-54,4,0,TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(5,-54,4,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(-5,-54,3.6,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(5,-54,3.6,0,TAU); ctx.fill();
   }
   ctx.restore();
 }
