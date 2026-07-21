@@ -71,10 +71,13 @@ function joyHome(side){
   const R=joyRadius(), m=R*0.95+10;
   return { x: side==='l' ? SAFE.l+m : W-SAFE.r-m, y: H-SAFE.b-m-6 };
 }
-function pauseBtnRect(){ const s=Math.max(40, Math.min(W,H)*0.072); return {x:W-SAFE.r-s-12, y:SAFE.t+62, w:s, h:s}; }
+function pauseBtnRect(){ const s=Math.max(40, Math.min(W,H)*0.072); return {x:W-SAFE.r-s-12, y:SAFE.t+hudHeight()+6, w:s, h:s}; }
 function inPauseBtn(x,y){ if(!IS_TOUCH) return false; const b=pauseBtnRect(); return x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h; }
 function updateTouchDir(){
-  const R=joyRadius(), th=0.30*R;
+  // Zona morta pequena: só o suficiente para o tremor do dedo não trocar de
+  // direção sozinho. Antes eram 30% do raio, o que obrigava a um arrasto
+  // deliberado antes de o jogo reagir.
+  const th=Math.max(5, joyRadius()*0.10);
   touchDir.l=joy.active && joy.dx<-th; touchDir.r=joy.active && joy.dx>th;
   touchDir.u=joy.active && joy.dy<-th; touchDir.d=joy.active && joy.dy>th;
 }
@@ -103,12 +106,15 @@ cv.addEventListener('pointerdown', e=>{
   if(IS_TOUCH && state==='play' && !joy.active){   // só nos cantos de baixo
     const z=joyZone(x,y);
     if(z){
-      const R=joyRadius();
-      // âncora onde o polegar tocou, mas presa ao canto (nunca invade o meio)
-      joy.active=true; joy.id=e.pointerId;
-      joy.cx=clamp(x, SAFE.l+R*0.7, W-SAFE.r-R*0.7);
-      joy.cy=clamp(y, R*0.7, H-SAFE.b-R*0.7);
-      joy.dx=0; joy.dy=0; updateTouchDir(); return;
+      // Centro fixo na marca do canto, não onde o polegar caiu: assim o
+      // próprio toque já vale deflexão e o jogo arranca no instante, em vez
+      // de esperar por um arrasto. Também condiz com o anel que está lá
+      // desenhado enquanto o joystick está parado.
+      const R=joyRadius(), h=joyHome(z);
+      joy.active=true; joy.id=e.pointerId; joy.cx=h.x; joy.cy=h.y;
+      let dx=x-h.x, dy=y-h.y; const d=Math.hypot(dx,dy);
+      if(d>R){ dx=dx/d*R; dy=dy/d*R; }
+      joy.dx=dx; joy.dy=dy; updateTouchDir(); return;
     }
   }
   mouse.clicked=true;
@@ -1403,7 +1409,7 @@ function drawOppMarker(){
   const sx=opp.x, sy=w2s(opp.y);
   if(sx>-12 && sx<W+12 && sy>-12 && sy<H+12) return;   // ainda à vista
   // margens com folga para a ponta da seta (32px) não sair do ecrã
-  const padT=SAFE.t+128, padB=SAFE.b+(IS_TOUCH?62:46), padL=SAFE.l+42, padR=SAFE.r+42;
+  const padT=SAFE.t+hudHeight()+70, padB=SAFE.b+(IS_TOUCH?62:46), padL=SAFE.l+42, padR=SAFE.r+42;
   const mx=clamp(sx,padL,W-padR), my=clamp(sy,padT,H-padB);
   const isM = opp.kind==='moedas';
   const col = isM? '#e74c3c' : '#8fbf3f';
@@ -1959,14 +1965,19 @@ function meter(x,y,w,h,v,col,lab){
   ctx.fillStyle='#f4ecd7'; ctx.font='900 10px "Arial Black", Impact, sans-serif'; ctx.textAlign='left';
   ctx.fillText(lab,x+1,y-5);
 }
+// O layout largo precisa de ~550px (contadores + terrenos + medidor lado a
+// lado). Em retrato de telemóvel não cabe e sobrepunha-se tudo, por isso aí
+// passa a duas linhas e a barra cresce.
+function hudHeight(){ return W<560 ? 76 : 58; }
 function drawHUD(){
-  const T=SAFE.t, L=SAFE.l, R=SAFE.r;
-  const bg=ctx.createLinearGradient(0,0,0,58+T);
+  const T=SAFE.t, L=SAFE.l, R=SAFE.r, hudH=hudHeight();
+  const bg=ctx.createLinearGradient(0,0,0,hudH+T);
   bg.addColorStop(0,'rgba(10,13,24,.9)'); bg.addColorStop(1,'rgba(10,13,24,.62)');
-  ctx.fillStyle=bg; ctx.fillRect(0,0,W,58+T);
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,hudH+T);
   ctx.strokeStyle='rgba(240,220,160,.4)'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(0,58+T); ctx.lineTo(W,58+T); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,hudH+T); ctx.lineTo(W,hudH+T); ctx.stroke();
   ctx.save(); ctx.translate(0,T);
+  if(W<560){ drawHudNarrow(L,R); ctx.restore(); drawPlayerStat(); return; }
   ctx.textAlign='left';
   ctx.font='900 15px "Arial Black", Impact, sans-serif';
   ctx.fillStyle='#8fbf3f'; ctx.fillText('🏠 LISBOETAS: '+plotsSaved, 14+L, 24);
@@ -1996,6 +2007,41 @@ function drawHUD(){
   ctx.restore();
   drawPlayerStat();
 }
+// Retrato de telemóvel: contadores nas pontas, terrenos ao centro, e o
+// medidor sozinho numa segunda linha a toda a largura.
+function drawHudNarrow(L,R){
+  const pisca=(performance.now()/300|0)%2;
+  ctx.font='900 13px "Arial Black", Impact, sans-serif';
+  ctx.textAlign='left';  ctx.fillStyle='#8fbf3f'; ctx.fillText('🏠 '+plotsSaved, 12+L, 21);
+  ctx.textAlign='right'; ctx.fillStyle='#e74c3c'; ctx.fillText('🏨 '+plotsSold, W-12-R, 21);
+  ctx.textAlign='center'; ctx.fillStyle='#f4ecd7'; ctx.font='bold 12px Trebuchet MS';
+  ctx.fillText('Terrenos: '+plotsDone+' / '+TOTAL_PLOTS, W/2, 21);
+  const mx=14+L, mw=Math.max(90, W-28-L-R), my=47, mh=13;
+  if(playerSide==='moedas'){
+    if(!moedas.unicorn){
+      meter(mx,my,mw,mh, moedas.gas, '#f39c12', 'GASOLINA');
+      if(moedas.gas<0.25){
+        ctx.fillStyle= pisca?'#e74c3c':'#fff'; ctx.textAlign='center';
+        ctx.font='900 11px "Arial Black", Impact, sans-serif';
+        ctx.fillText('⛽ ENCONTRA UM POSTO!', W/2, 72); }
+    } else {
+      ctx.fillStyle='#e77ec9'; ctx.textAlign='center';
+      ctx.font='900 13px "Arial Black", Impact, sans-serif';
+      ctx.fillText('🦄 UNICÓRNIO — SEM LIMITES!', W/2, 56);
+    }
+  } else {
+    meter(mx,my,mw,mh, lisboetas.battery, '#8fbf3f', 'BATERIA');
+    ctx.textAlign='center';
+    if(lisboetas.battery<0.25){
+      ctx.fillStyle= pisca?'#e74c3c':'#fff';
+      ctx.font='900 11px "Arial Black", Impact, sans-serif';
+      ctx.fillText('🔋 PROCURA UMA DOCA GIRA!', W/2, 72);
+    } else {
+      ctx.fillStyle='#f4ecd7'; ctx.font='bold 11px Trebuchet MS';
+      ctx.fillText('Ciclistas: '+'🚲'.repeat(lisboetas.riders), W/2, 72);
+    }
+  }
+}
 // Resultado do lado do jogador, em destaque por baixo da barra do HUD.
 function drawPlayerStat(){
   const isM = playerSide==='moedas';
@@ -2005,7 +2051,7 @@ function drawPlayerStat(){
     : '🏠 '+n+' '+(n===1?'família alojada':'famílias alojadas');
   ctx.font='900 13px "Arial Black", Impact, sans-serif'; ctx.textAlign='left';
   const pad=9, bw=ctx.measureText(txt).width+pad*2, bh=24;
-  const x=14+SAFE.l, y=58+SAFE.t+8;
+  const x=14+SAFE.l, y=hudHeight()+SAFE.t+8;
   ctx.fillStyle='rgba(10,13,24,.74)'; rr(ctx,x,y,bw,bh,7); ctx.fill();
   ctx.strokeStyle= isM?'rgba(231,76,60,.85)':'rgba(143,191,63,.85)'; ctx.lineWidth=2;
   rr(ctx,x,y,bw,bh,7); ctx.stroke();
