@@ -3331,9 +3331,33 @@ function playerBaseSpeed(){
   if(player.kind==='moedas'){ return player.unicorn? 320 : 210; }
   return 282;   // Lisboetas um pouco mais rápidos para terem hipótese
 }
+// ---- borracha: o computador acelera quando fica muito para trás ----
+// Sem isto uma boa arrancada mata a corrida — o adversário desaparece atrás
+// e os últimos terrenos são um passeio. O bónus entra devagar (curva
+// quadrática) para que uma vantagem honesta continue a compensar.
+const CATCH_LAG0=0.7;      // ecrãs de atraso tolerados antes de compensar
+const CATCH_LAG_SAT=2.6;   // atraso a partir do qual o bónus satura
+const CATCH_LAG_BONUS=0.85;// bónus máximo vindo da distância
+const CATCH_PLOT_BONUS=0.3;// bónus máximo vindo da desvantagem de terrenos
+const CATCH_CEIL=1.35;     // nunca mais que isto vezes a velocidade do jogador
+function catchupBoost(){
+  const opp = (playerSide==='moedas') ? lisboetas : moedas;
+  if(!opp || !player) return 1;
+  let boost=1;
+  const lag=(player.y-opp.y)/H;                 // atraso em ecrãs
+  if(lag>CATCH_LAG0){
+    const t=clamp((lag-CATCH_LAG0)/(CATCH_LAG_SAT-CATCH_LAG0),0,1);
+    boost += CATCH_LAG_BONUS*t*t;
+  }
+  const mine   = playerSide==='moedas'? plotsSold  : plotsSaved;
+  const theirs = playerSide==='moedas'? plotsSaved : plotsSold;
+  if(mine-theirs>1) boost += Math.min((mine-theirs-1)*0.1, CATCH_PLOT_BONUS);
+  return boost;
+}
 function oppSpeed(){
-  if(playerSide==='moedas'){ return 150; }
-  return moedas.unicorn?300:245;
+  const base = (playerSide==='moedas') ? 150 : (moedas.unicorn?300:245);
+  // o tecto relativo evita teletransportes: recupera terreno, não humilha
+  return Math.min(base*catchupBoost(), playerBaseSpeed()*CATCH_CEIL);
 }
 function drainResource(dt){
   if(player.kind==='moedas'){
