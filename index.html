@@ -132,6 +132,7 @@ window.addEventListener('keydown', e=>{
   if(e.key==='Escape'){
     if(state==='play'||state==='countdown'){ pausePrev=state; state='pause'; }
     else if(state==='pause'){ state=pausePrev||'play'; }
+    else if(state==='howto'){ state='menu'; }
   }
 });
 window.addEventListener('keyup', e=>{ keys[e.key]=false; });
@@ -1278,6 +1279,11 @@ const OBST_R=26;                  // raio de colisão de um obstáculo
 let plotsPlaced=0, rowsSinceGas=999, rowsSinceGira=999, giraCount=0, obstCount=0;
 let plotRows=new Set(), landmarkAt=new Map();
 const PLOT_SPACING=4, FIRST_PLOT_ROW=5;   // terrenos bem afastados
+// Hipótese de uma célula livre ser bomba de gasolina. Afinada ao número, não à
+// probabilidade: o mundo é determinístico e pequeno, e baixar 0.09 -> 0.06
+// (2/3 da hipótese) só tirava uma bomba das seis. Este valor dá as 4 que são
+// dois terços das 6 originais.
+const GAS_CHANCE=0.045;
 const MAX_ROW = FIRST_PLOT_ROW + (TOTAL_PLOTS-1)*PLOT_SPACING + 6;  // mundo finito (último terreno + folga)
 const WORLD_TOP_Y = (MAX_ROW+1)*ROW_H;    // parede invisível no topo
 function planWorld(){
@@ -1339,7 +1345,7 @@ function genRow(row){
       feat={type:'landmark', name:lmName, x:cx, y:cy, w:rc.w, h:rc.h};
     } else {
       const r=R();
-      if(!gasDone && rowsSinceGas>=4 && r<0.09){
+      if(!gasDone && rowsSinceGas>=4 && r<GAS_CHANCE){
         feat={type:'gas', x:cx, y:cy, w:rc.w, h:rc.h}; rowsSinceGas=0; gasDone=true;
       } else if(!giraDone && rowsSinceGira>=2 && r<0.16){
         const broken=(giraCount++ % 3)!==2;   // padrão má-má-boa → 2/3 avariadas, 1/3 boas
@@ -2876,17 +2882,22 @@ function drawMenu(){
   // buttons + difficulty meters (UI nítida por cima da arte pixelizada)
  crisp(()=>{
   menuBtns=[];
-  // botão de silenciar música (topo centro)
+  // barra do topo: música + como jogar, lado a lado e centradas como par
   {
-    const mbw=Math.min(160,W*0.22), mbh=compact?26:30;
+    const mbw=Math.min(160,W*0.22), mbh=compact?26:30, gap=8;
+    const y=TT+(compact?6:8);
     // em paisagem apertada vai para o canto superior direito, longe do título
-    const b={ x: compact? W-R-mbw-10 : W/2-mbw/2, y: TT+(compact?6:8), w:mbw, h:mbh, act:'music'};
-    menuBtns.push(b);
-    const hover=mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h;
-    ctx.fillStyle='rgba(10,13,24,.82)'; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.fill();
-    ctx.strokeStyle=hover?'#ffd23f':'rgba(240,220,160,.6)'; ctx.lineWidth=2; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.stroke();
-    ctx.fillStyle='#f4ecd7'; ctx.font='900 12px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
-    ctx.fillText(musicOn?'🔊 MÚSICA: ON':'🔇 MÚSICA: OFF', b.x+b.w/2, b.y+b.h/2+4.5);
+    const x0 = compact ? W-R-(mbw*2+gap)-10 : W/2-(mbw*2+gap)/2;
+    const tabs=[{ x:x0, y, w:mbw, h:mbh, act:'music', txt:musicOn?'🔊 MÚSICA: ON':'🔇 MÚSICA: OFF'},
+                { x:x0+mbw+gap, y, w:mbw, h:mbh, act:'howto', txt:'❓ COMO JOGAR'}];
+    for(const b of tabs){
+      menuBtns.push(b);
+      const hover=mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h;
+      ctx.fillStyle='rgba(10,13,24,.82)'; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.fill();
+      ctx.strokeStyle=hover?'#ffd23f':'rgba(240,220,160,.6)'; ctx.lineWidth=2; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.stroke();
+      ctx.fillStyle='#f4ecd7'; ctx.font='900 12px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+      ctx.fillText(b.txt, b.x+b.w/2, b.y+b.h/2+4.5);
+    }
   }
   const lb={x:W*0.24-bw/2,y:by,w:bw,h:bh,side:'lisboetas'};
   const mb={x:W*0.76-bw/2,y:by,w:bw,h:bh,side:'moedas'};
@@ -2900,6 +2911,151 @@ function drawMenu(){
   dlines.forEach((ln,i)=>ctx.fillText(ln, W/2, descY0+i*lh));
  });
 }
+// ================= COMO JOGAR =================
+// Ecrã de instruções. Tudo se mede a partir da altura disponível para caber
+// sem cortar em paisagem apertada — nada de scroll. NÃO menciona o unicórnio:
+// é para ser surpresa quando o Moedas perde 5 terrenos.
+let howtoBtns=[];
+const HOWTO_SECS=[
+  {ic:'meta',  tit:'O OBJETIVO',
+   txt:'Há 10 terrenos em Lisboa. Chega primeiro a um terreno para o reclamares. Ganha quem ficar com mais.'},
+  {ic:'setas', tit:'CONTROLOS',
+   txt:'Setas do teclado (ou o manípulo no ecrã) para andar. ESPAÇO avança as cutscenes. ESC abre a pausa.'},
+  {ic:'lados', tit:'ESCOLHE UM LADO',
+   txt:'Lisboetas de bicicleta Gira querem Habitação a Preços Acessíveis — é a dificuldade máxima. Carlos Moedas de carro quer vender a investidores — é a dificuldade fácil.'},
+  {ic:'bat',   tit:'FICA DE OLHO NO DEPÓSITO',
+   txt:'A bateria da Gira gasta-se: carrega-a nas docas — mas dois terços delas estão avariadas. A gasolina do carro também acaba; reabastece nas bombas.'},
+  {ic:'hole',  tit:'BURACOS NA ESTRADA',
+   txt:'A cidade está cheia deles. Cair num custa-te 2 segundos parado. Contorna-os: há sempre caminho livre.'},
+  {ic:'trash', tit:'PILHAS DE SACOS DE LIXO',
+   txt:'Espetares-te no lixo custa outros 2 segundos. Fica atento às ruas: aparecem sem aviso.'},
+  {ic:'relog', tit:'NÃO DEIXES TERRENOS PARA TRÁS',
+   txt:'Um terreno que fique muito atrás da corrida é entregue ao adversário. Não vale a pena voltar para trás.'}
+];
+function howtoIcon(kind,x,y,s){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  if(kind==='meta'){
+    ctx.fillStyle='#c9b58a'; ctx.fillRect(-2,-16,4,32);           // mastro
+    ctx.strokeStyle=CEL; ctx.lineWidth=1.6; ctx.strokeRect(-2,-16,4,32);
+    for(let r2=0;r2<3;r2++) for(let c2=0;c2<4;c2++){              // bandeira axadrezada
+      ctx.fillStyle=(r2+c2)%2?'#f4ecd7':'#22262c';
+      ctx.fillRect(2+c2*7,-16+r2*7,7,7); }
+    ctx.strokeStyle=CEL; ctx.lineWidth=1.6; ctx.strokeRect(2,-16,28,21);
+  } else if(kind==='setas'){
+    ctx.fillStyle='#3b4048'; ctx.strokeStyle=CEL; ctx.lineWidth=1.6;
+    const tec=(dx,dy,rot)=>{ rr(ctx,dx-9,dy-9,18,18,4); ctx.fill(); ctx.stroke();
+      ctx.save(); ctx.translate(dx,dy); ctx.rotate(rot);
+      ctx.fillStyle='#ffd23f'; ctx.beginPath();
+      ctx.moveTo(0,-5); ctx.lineTo(4.5,3); ctx.lineTo(-4.5,3); ctx.closePath(); ctx.fill();
+      ctx.restore(); ctx.fillStyle='#3b4048'; };
+    tec(0,-11,0); tec(-20,10,-Math.PI/2); tec(0,10,Math.PI); tec(20,10,Math.PI/2);
+  } else if(kind==='lados'){
+    // compacto: com a bicicleta e o carro à escala anterior o ícone chegava
+    // a encostar ao texto da secção
+    drawBikeSide(-13,3,0.46,false,1);
+    ctx.save(); ctx.translate(13,1); ctx.scale(0.25,0.25); drawCarSide(0,0,1,false); ctx.restore();
+  } else if(kind==='bat'){
+    ctx.fillStyle='#1b1e24'; ctx.strokeStyle=CEL; ctx.lineWidth=2;  // bateria
+    rr(ctx,-26,-11,32,22,3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#79b52d'; ctx.fillRect(-23,-8,12,16);
+    ctx.fillStyle='#c9cdd2'; ctx.fillRect(6,-5,4,10);
+    ctx.fillStyle='#e04338'; ctx.strokeStyle=CEL;                   // bomba de gasolina
+    rr(ctx,14,-14,16,28,3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#f4ecd7'; ctx.fillRect(17,-11,10,8);
+    ctx.strokeStyle='#8a5a10'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(30,-4); ctx.quadraticCurveTo(36,-2,35,6); ctx.stroke();
+  } else if(kind==='hole'){
+    drawHoleTop(0,0,7);
+  } else if(kind==='trash'){
+    drawTrashTop(0,0,11);
+  } else if(kind==='relog'){
+    ctx.fillStyle='#f4ecd7'; ctx.strokeStyle=CEL; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.arc(0,0,16,0,TAU); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle=CEL; ctx.lineWidth=2.6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-10); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(7,3); ctx.stroke();
+    ctx.fillStyle='#e04338'; ctx.beginPath(); ctx.arc(0,0,2.6,0,TAU); ctx.fill();
+    ctx.lineCap='butt';
+  }
+  ctx.restore();
+}
+function drawHowto(){
+  buildMenuBG();
+  ctx.drawImage(menuBG,0,0);
+  ctx.fillStyle='rgba(8,10,18,.86)'; ctx.fillRect(0,0,W,H);
+  crisp(()=>{
+    howtoBtns=[];
+    const L=SAFE.l, R=SAFE.r, TT=SAFE.t, BB=SAFE.b;
+    const padX=Math.max(L,R)+14;
+    const boxW=Math.min(W-padX*2, 1000);
+    const x0=(W-boxW)/2;
+    // título
+    const tf=clamp(W*0.032,18,34);
+    ctx.font='900 '+tf+'px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+    ctx.fillStyle='#ffd23f';
+    ctx.fillText('COMO JOGAR', W/2, TT+tf+8);
+    // botão voltar (canto superior esquerdo, fora da coluna de texto)
+    {
+      const bw2=Math.min(132,W*0.2), bh2=30;
+      const b={x:x0, y:TT+6, w:bw2, h:bh2, act:'back'};
+      howtoBtns.push(b);
+      const hover=mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h;
+      ctx.fillStyle='rgba(10,13,24,.9)'; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.fill();
+      ctx.strokeStyle=hover?'#ffd23f':'rgba(240,220,160,.6)'; ctx.lineWidth=2; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.stroke();
+      ctx.fillStyle='#f4ecd7'; ctx.font='900 12px "Arial Black", Impact, sans-serif';
+      ctx.fillText('‹ VOLTAR', b.x+b.w/2, b.y+b.h/2+4.5);
+    }
+    // duas colunas se houver largura; senão uma
+    const duas = boxW>640;
+    const colW = duas? (boxW-28)/2 : boxW;
+    const top = TT+tf+22;
+    const bot = H-BB-10;
+    const espaco = bot-top;
+    const icoW=Math.min(58, colW*0.15);
+    const txtW=colW-icoW-12;
+    // Os blocos ficam com a sua altura natural e o conjunto centra-se: com a
+    // altura distribuída em partes iguais sobrava um vão enorme entre secções.
+    let bodyFs=clamp(colW*0.034,8,18), titFs, layout;
+    for(let guard=0;guard<40;guard++){
+      titFs=clamp(bodyFs*1.16,8,20);
+      ctx.font='bold '+bodyFs+'px Trebuchet MS';
+      const gapY=bodyFs*1.5;
+      const colY=[0,0]; layout=[];
+      HOWTO_SECS.forEach((s,i)=>{
+        const col=duas? (i%2) : 0;
+        const linhas=wrapLines(s.txt, txtW);
+        const alt=titFs*1.4+linhas.length*bodyFs*1.32;
+        layout.push({s,col,y:colY[col],alt,linhas});
+        colY[col]+=alt+gapY;
+      });
+      const total=Math.max(colY[0],colY[1])-gapY;
+      if(total<=espaco || bodyFs<=8){ layout.total=total; break; }
+      bodyFs*=0.95;
+    }
+    const y0=top+Math.max(0,(espaco-layout.total)/2);
+    for(const it of layout){
+      const bx=x0+it.col*(colW+28), by2=y0+it.y;
+      howtoIcon(it.s.ic, bx+icoW/2, by2+it.alt/2, Math.min(0.9, icoW/64));
+      ctx.textAlign='left';
+      ctx.fillStyle='#ffd23f';
+      ctx.font='900 '+titFs+'px "Arial Black", Impact, sans-serif';
+      ctx.fillText(it.s.tit, bx+icoW+12, by2+titFs);
+      ctx.fillStyle='rgba(248,242,226,.92)';
+      ctx.font='bold '+bodyFs+'px Trebuchet MS';
+      it.linhas.forEach((ln,k)=>
+        ctx.fillText(ln, bx+icoW+12, by2+titFs*1.4+bodyFs*(k+1)*1.32-bodyFs*0.25));
+    }
+    ctx.textAlign='center';
+  });
+}
+// quebra de linha com a fonte já activa no contexto
+function wrapLines(txt,maxw){
+  const words=txt.split(' '); const lines=[]; let cur='';
+  for(const w2 of words){ const tst=cur?cur+' '+w2:w2;
+    if(ctx.measureText(tst).width>maxw && cur){ lines.push(cur); cur=w2; } else cur=tst; }
+  if(cur) lines.push(cur); return lines;
+}
+function wrapCount(txt,maxw){ return wrapLines(txt,maxw).length; }
 // ================= SIDE-VIEW ART (cutscenes) =================
 function drawMoedasHeadSide(x,y,s,mood){
   // cel-shading: cores chapadas, tinta CEL, alinhado com o retrato novo
@@ -4269,7 +4425,16 @@ function frame(now){
     if(mouse.clicked){
       for(const b of menuBtns){ if(mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h){
         if(b.act==='music'){ initAudio(); setMusic(!musicOn); }
+        else if(b.act==='howto'){ state='howto'; }
         else if(b.side){ startGame(b.side); }
+        break;
+      } }
+    }
+  } else if(state==='howto'){
+    drawHowto();
+    if(mouse.clicked){
+      for(const b of howtoBtns){ if(mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h){
+        if(b.act==='back') state='menu';
         break;
       } }
     }
