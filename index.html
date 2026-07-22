@@ -4297,15 +4297,20 @@ function cutSemBicicletas(p){
   ctx.fillStyle='#63666c'; ctx.fillRect(0,horizonte,W,10);
   ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=4; ctx.setLineDash([34,28]);
   ctx.beginPath(); ctx.moveTo(0,H*0.74); ctx.lineTo(W,H*0.74); ctx.stroke(); ctx.setLineDash([]);
+  // Escalas ligadas à largura: em telemóvel ao alto o monte de lixo saía pelo
+  // rebordo direito e as bicicletas ficavam desproporcionadas. O monte espalha
+  // sacos e lixo até ~170 de meia-largura, e a posição é travada para caber.
+  const esc=Math.min(1, W/700);
+  const ps=0.78*esc;
   // ---- fundo: monte de lixo com uma Gira espetada lá dentro ----
-  const px=cx+W*0.27, py=ground-H*0.10;
-  trashPile(px,py,0.78,false);
+  const px=Math.min(cx+W*0.27, W-170*ps-8), py=ground-H*0.10;
+  trashPile(px,py,ps,false);
   ctx.save();
-  ctx.translate(px-30,py-44); ctx.rotate(-0.95);
-  drawBikeSide(0,0,1.3,false,null,{noRider:true,semBateria:true});
+  ctx.translate(px-38*ps,py-56*ps); ctx.rotate(-0.95);
+  drawBikeSide(0,0,1.65*ps,false,null,{noRider:true,semBateria:true});
   ctx.restore();
-  trashPile(px,py+18,0.78,true);
-  moscas(px,py-48,4,T,1.0);
+  trashPile(px,py+23*ps,ps,true);
+  moscas(px,py-62*ps,4,T,1.3*ps);
   // ---- primeiro plano: bicicletas caídas na estrada ----
   // [x relativo, escala, rotação, roda em falta, bateria vazia]
   // Deitadas no alcatrão: a silhueta mantém-se horizontal com uma inclinação
@@ -4319,13 +4324,13 @@ function cutSemBicicletas(p){
     [-0.34, 1.1,  0.12, 'frente', true,   1]
   ];
   caidas.forEach((b,i)=>{
-    const bx=cx+b[0]*W*0.62, by=ground+(i===4? -54 : 10)+(i%2?18:0);
+    const bx=cx+b[0]*W*0.62, by=ground+(i===4? -54 : 10)*esc+(i%2?18:0)*esc;
     ctx.save(); ctx.translate(bx,by); ctx.scale(b[5],1); ctx.rotate(b[2]);
-    drawBikeSide(0,0,b[1],false,null,{noRider:true,noWheel:b[3],semBateria:b[4]});
+    drawBikeSide(0,0,b[1]*esc,false,null,{noRider:true,noWheel:b[3],semBateria:b[4]});
     ctx.restore();
     if(b[3]){                                   // a roda arrancada, ao lado
-      ctx.save(); ctx.translate(bx+30*(i%2?-1:1), by+30); ctx.rotate(0.3+i);
-      ctx.fillStyle='#1b1b20'; ctx.beginPath(); ctx.ellipse(0,0,15,5,0,0,TAU); ctx.fill();
+      ctx.save(); ctx.translate(bx+30*esc*(i%2?-1:1), by+30*esc); ctx.rotate(0.3+i);
+      ctx.fillStyle='#1b1b20'; ctx.beginPath(); ctx.ellipse(0,0,15*esc,5*esc,0,0,TAU); ctx.fill();
       ctx.strokeStyle=CEL; ctx.lineWidth=2; ctx.stroke();
       ctx.restore();
     }
