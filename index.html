@@ -2204,7 +2204,8 @@ function drawCarRear(){   // carro Noddy de trás (a subir); topo = frente
   ctx.lineTo(37,48); ctx.quadraticCurveTo(37,60,26,60); ctx.lineTo(-26,60);
   ctx.quadraticCurveTo(-37,60,-37,48); ctx.lineTo(-37,-30); ctx.quadraticCurveTo(-37,-60,-26,-60);
   ctx.closePath();
-  ctx.save(); ctx.clip();
+  ctx.fill();                                  // base amarela: sem ela a faixa
+  ctx.save(); ctx.clip();                      // central ficava por pintar
   ctx.fillStyle='#ffe98c'; ctx.fillRect(-37,-60,20,120);      // faixa de luz (esquerda)
   ctx.fillStyle='#d99416'; ctx.fillRect(20,-60,17,120);       // plano de sombra (direita)
   ctx.restore();
@@ -2314,7 +2315,8 @@ function drawCarFront(){   // carro Noddy de frente (a descer); topo = traseira
   ctx.lineTo(37,48); ctx.quadraticCurveTo(37,60,26,60); ctx.lineTo(-26,60);
   ctx.quadraticCurveTo(-37,60,-37,48); ctx.lineTo(-37,-30); ctx.quadraticCurveTo(-37,-60,-26,-60);
   ctx.closePath();
-  ctx.save(); ctx.clip();
+  ctx.fill();                                  // base amarela: sem ela a faixa
+  ctx.save(); ctx.clip();                      // central ficava por pintar
   ctx.fillStyle='#ffe98c'; ctx.fillRect(-37,-60,20,120);
   ctx.fillStyle='#d99416'; ctx.fillRect(20,-60,17,120);
   ctx.restore();
@@ -3049,8 +3051,8 @@ function howtoIcon(kind,x,y,s){
   } else if(kind==='trash'){
     drawTrashTop(0,0,11);
   } else if(kind==='bicis'){
-    drawBikeSide(-13,3,0.46,false,1);                       // uma de pé
-    ctx.save(); ctx.translate(16,7); ctx.rotate(1.6);       // outra tombada, sem bateria
+    drawBikeSide(-12,-6,0.42,false,1);                      // uma de pé
+    ctx.save(); ctx.translate(10,14); ctx.rotate(0.2);      // outra deitada, sem bateria
     drawBikeSide(0,0,0.4,false,null,{noRider:true,semBateria:true}); ctx.restore();
   } else if(kind==='relog'){
     ctx.fillStyle='#f4ecd7'; ctx.strokeStyle=CEL; ctx.lineWidth=2.4;
@@ -3724,7 +3726,7 @@ function cutBrokenDock(p){
     ctx.restore();
   }
   // bicicleta abandonada: sem ninguém e com a roda da frente roubada
-  ctx.save(); ctx.translate(cx+150,cy+52); ctx.rotate(1.35);
+  ctx.save(); ctx.translate(cx+150,cy+58); ctx.rotate(0.22);   // deitada, não de pé
   drawBikeSide(0,0,1.2,false,null,{noRider:true,noWheel:'frente'}); ctx.restore();
   // weeds
   ctx.fillStyle='#4a5c33';
@@ -4172,7 +4174,7 @@ function cutObstacle(p,kind){
       ctx.rect(0,0,W,H);
       ctx.ellipse(cx+70,ground,104*1.15,30*1.15,0,0,TAU);
       ctx.clip('evenodd');
-      ctx.translate(cx-96,ground+18); ctx.rotate(1.62);               // bicicleta tombada
+      ctx.translate(cx-104,ground+22); ctx.rotate(0.2);               // bicicleta tombada, deitada
       drawBikeSide(0,0,1.9,false,null,{noRider:true}); ctx.restore();
       holeSideFront(cx+70,ground,1.15);
       fallenRider(cx-210,ground-14,T,1.55);
@@ -4188,14 +4190,14 @@ function cutObstacle(p,kind){
     const kick=Math.max(0,Math.sin(T*9));
     ctx.save();
     if(kind==='hole'){
-      // Só se vê o que está acima do solo E fora da boca do buraco (even-odd
-      // entre o rectângulo até à linha do chão e a elipse). Com o recorte só
-      // pela elipse, o focinho passava por baixo e reaparecia do lado oposto.
-      ctx.beginPath();
-      ctx.rect(0,0,W,ground+4);
-      ctx.ellipse(cx+70,ground,104*1.15,30*1.15,0,0,TAU);
-      ctx.clip('evenodd');
-      ctx.translate(cx+10,ground-44); ctx.rotate(0.6);
+      // O carro cai PARA DENTRO: desenha-se entre o fundo do buraco (já
+      // pintado) e o rebordo da frente (holeSideFront, a seguir), que lhe tapa
+      // a parte enfiada lá dentro. Recortar pela boca da elipse, como estava,
+      // apagava-o em cima do buraco e ele lia-se como estando por trás dele.
+      // O recorte que fica é só o bordo inferior da elipse, para o focinho não
+      // reaparecer por baixo do buraco.
+      ctx.beginPath(); ctx.rect(0,0,W,ground+30*1.15); ctx.clip();
+      ctx.translate(cx+34,ground-30); ctx.rotate(0.62);
       if(kick>0.9) ctx.rotate(0.025);
       drawCarSide(0,0,1.6,false,undefined,true,false);
     } else {
@@ -4207,7 +4209,7 @@ function cutObstacle(p,kind){
     if(kind==='hole') holeSideFront(cx+70,ground,1.15);
     else { trashPile(cx+70,ground+22,1.05,true); moscas(cx+80,ground-120,5,T,1.3); }
     // encostado ao carro: o pé do pontapé tem de lhe chegar à chapa
-    const figX=cx+(kind==='hole'?-148:-92), figY=ground+10;
+    const figX=cx+(kind==='hole'?-104:-92), figY=ground+10;
     drawMoedasFig(figX,figY,1.6,'kick',T,1);   // virado para o carro (à direita)
     tearFountain(figX,figY-86,1.0);            // mesma escala das outras cutscenes
   }
@@ -4306,16 +4308,19 @@ function cutSemBicicletas(p){
   moscas(px,py-48,4,T,1.0);
   // ---- primeiro plano: bicicletas caídas na estrada ----
   // [x relativo, escala, rotação, roda em falta, bateria vazia]
+  // Deitadas no alcatrão: a silhueta mantém-se horizontal com uma inclinação
+  // pequena. Rodá-las 90 graus punha-as de pé sobre uma roda, que é o oposto
+  // de terem tombado. Umas são espelhadas para o monte não parecer clonado.
   const caidas=[
-    [-0.46, 1.5,  1.62, null,     true ],
-    [-0.22, 1.3, -1.48, 'frente', false],
-    [ 0.00, 1.6,  1.72, 'tras',   true ],
-    [ 0.22, 1.2,  1.55, null,     true ],
-    [-0.34, 1.1, -1.66, 'frente', true ]
+    [-0.46, 1.5,  0.16, null,     true,   1],
+    [-0.22, 1.3, -0.10, 'frente', false, -1],
+    [ 0.00, 1.6,  0.24, 'tras',   true,   1],
+    [ 0.22, 1.2, -0.18, null,     true,  -1],
+    [-0.34, 1.1,  0.12, 'frente', true,   1]
   ];
   caidas.forEach((b,i)=>{
     const bx=cx+b[0]*W*0.62, by=ground+(i===4? -54 : 10)+(i%2?18:0);
-    ctx.save(); ctx.translate(bx,by); ctx.rotate(b[2]);
+    ctx.save(); ctx.translate(bx,by); ctx.scale(b[5],1); ctx.rotate(b[2]);
     drawBikeSide(0,0,b[1],false,null,{noRider:true,noWheel:b[3],semBateria:b[4]});
     ctx.restore();
     if(b[3]){                                   // a roda arrancada, ao lado
