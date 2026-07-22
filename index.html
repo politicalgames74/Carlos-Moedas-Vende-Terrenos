@@ -1493,9 +1493,11 @@ function obstacleNear(x,y){
   }
   return false;
 }
-// Choque com obstáculos de rua. Unicórnio nunca choca: ao aproximar-se
-// salta automaticamente por cima (jumpT conta 1s de animação). Os restantes
-// ficam atordoados 2s (a piscar vermelho); o jogador vê ainda a cutscene.
+const UNI_JUMP=1.5;    // duração do salto do unicórnio, em segundos
+// Choque com obstáculos de rua. Unicórnio nunca choca: ao aproximar-se salta
+// automaticamente por cima. Os dois lados pagam preços diferentes:
+//  - Moedas fica atordoado 2s (a piscar vermelho);
+//  - Lisboetas não param, mas fica lá um ciclista — perdem uma bicicleta.
 // Cada obstáculo só apanha cada lado UMA vez (o.caiu): sem isso, ficar
 // encostado a um buraco disparava a mesma cutscene vezes sem conta.
 function checkObstacles(ent,dt){
@@ -1506,7 +1508,7 @@ function checkObstacles(ent,dt){
     if(ent.unicorn){
       if(ent.jumpT<=0 && d<OBST_R+PLAYER_R+46 &&
          Math.cos(ent.ang)*-dx + Math.sin(ent.ang)*-dy > 0)   // só se vai na direção dele
-        ent.jumpT=1;
+        ent.jumpT=UNI_JUMP;
       continue;
     }
     if(ent.stun>0) continue;
@@ -1515,6 +1517,7 @@ function checkObstacles(ent,dt){
       const dd=d||0.001, push=(OBST_R+PLAYER_R-d)+8;
       ent.x+=dx/dd*push; ent.y+=dy/dd*push;      // ressalto para fora
       (o.caiu || (o.caiu={}))[ent.kind]=true;
+      if(ent.kind==='lisboetas'){ perdeBicicleta(ent, o.type); return; }
       // O stun só corre em updatePlay, por isso os 2s contam DEPOIS da
       // cutscene: primeiro a cena (saltável), depois 2s parado a piscar.
       ent.stun=2; ent.speed=0;
@@ -1524,20 +1527,34 @@ function checkObstacles(ent,dt){
     }
   }
 }
+// Um obstáculo custa uma bicicleta aos Lisboetas em vez dos 2s parados. Sem
+// bicicletas acabou a corrida: se for o jogador vê a cutscene do fim da linha,
+// se for o computador o jogo salta directo ao ecrã final (a legenda dessa
+// cutscene é dirigida a quem perdeu, não servia para o adversário).
+function perdeBicicleta(ent, tipoObst){
+  ent.riders--;
+  if(ent.riders<=0){
+    ent.riders=0;
+    if(ent.isPlayer){ playCut('semBicicletas',7); pendingGameOver=true; }
+    else playCut('end',999);
+    return;
+  }
+  if(ent.isPlayer) playCut(tipoObst,2.6);
+}
 // Raio de contacto de cada lado. O pelotão dos Lisboetas ocupa bem mais rua
 // que o carro (cinco bicicletas em leque), por isso não serve o mesmo raio
 // que se usa contra os prédios.
 function entRadius(e){ return e.kind==='lisboetas' ? 27 : 19; }
 // Choque entre os dois rivais: bloqueiam-se um ao outro, o que permite cortar
 // a linha ao adversário em vez de o atravessar. O Moedas em unicórnio salta
-// por cima, com a mesma animação de 1s dos obstáculos, e enquanto está no ar
-// passa por cima deles. Empurrão simétrico: ninguém tem prioridade.
+// por cima, com a mesma animação dos obstáculos, e enquanto está no ar passa
+// por cima deles. Empurrão simétrico: ninguém tem prioridade.
 function checkRivals(){
   const dx=moedas.x-lisboetas.x, dy=moedas.y-lisboetas.y;
   const d=Math.hypot(dx,dy), min=entRadius(moedas)+entRadius(lisboetas);
   if(moedas.unicorn && moedas.jumpT<=0 && d<min+46 &&
      Math.cos(moedas.ang)*-dx + Math.sin(moedas.ang)*-dy > 0)   // só se vai contra eles
-    moedas.jumpT=1;
+    moedas.jumpT=UNI_JUMP;
   if(moedas.jumpT>0) return;                                    // no ar: atravessa
   if(d>=min) return;
   const dd=d||0.001, push=(min-d)/2;
@@ -2431,14 +2448,19 @@ function drawMoedasEnt(m){
     });
     ctx.restore();
   } else {
-    // MUITO fumo do escape (sai pela traseira, no rumo oposto)
+    // MUITO fumo: pelo escape (traseira) em andamento, mas na contagem inicial
+    // o carro está parado a aquecer e o fumo sai do motor, à frente.
+    const aquecer = state==='countdown';
+    const fx = aquecer? rx*34 : -rx*30, fy = aquecer? ry*34 : -ry*30;
+    const sopro = aquecer? 1 : -1;      // à frente o fumo sobe pelo capô
     for(let i=0;i<3;i++){
       const gr=(80+rand(0,34))|0;
-      emit({x:m.x-rx*30+rand(-6,6), y:m.y-ry*30+rand(-6,6), vx:-rx*rand(12,36)+rand(-6,6), vy:-ry*rand(12,36)+rand(-6,6),
+      emit({x:m.x+fx+rand(-6,6), y:m.y+fy+rand(-6,6),
+        vx:sopro*rx*rand(12,36)+rand(-6,6), vy:sopro*ry*rand(12,36)+rand(-6,6),
         life:rand(1.0,1.7), g:0, r:rand(5,11), col:`rgba(${gr},${gr},${gr+6},0.5)`});
     }
     if(Math.random()<0.35)
-      emit({x:m.x-rx*30, y:m.y-ry*30, vx:-rx*rand(8,20), vy:-ry*rand(8,20),
+      emit({x:m.x+fx, y:m.y+fy, vx:sopro*rx*rand(8,20), vy:sopro*ry*rand(8,20),
         life:1.9, g:0, r:rand(9,15), col:'rgba(58,58,64,0.45)'});
     ctx.save(); ctx.translate(sx(m.x), w2s(m.y));
     stunFlash(m,()=>{
@@ -2470,13 +2492,15 @@ function stunFlash(ent,draw){
   g.globalCompositeOperation='source-over';
   ctx.drawImage(flashCv,-120,-120);
 }
-// Salto do unicórnio: 1s de animação: sobe, paira e desce, com sombra a
-// encolher por baixo. jumpT conta de 1 até 0.
+// Salto do unicórnio: sobe, paira e desce, com a sombra a encolher por baixo.
+// jumpT conta de UNI_JUMP até 0, por isso a fase normaliza-se pela duração —
+// com o divisor fixo em 1 o arco terminava a meio e ele caía de repente.
 function uniJumpOffset(ent){
   if(!ent || ent.jumpT<=0) return {dy:0,sc:1};
-  const u=1-ent.jumpT;                 // 0 → 1
+  const u=1-ent.jumpT/UNI_JUMP;        // 0 → 1
   const h=Math.sin(u*Math.PI);         // arco
-  return {dy:-h*54, sc:1+h*0.12};
+  // Voo mais longo pede mais altura, senão lê-se como um planar rasteiro.
+  return {dy:-h*76, sc:1+h*0.16};
 }
 const BIKE_FRQ=[1.9,2.3,1.7,2.6,2.1], BIKE_PH=[0,1.7,3.1,4.4,0.9];
 function drawLisboetasEnt(l){
@@ -2980,9 +3004,11 @@ const HOWTO_SECS=[
   {ic:'bat',   tit:'FICA DE OLHO NO DEPÓSITO',
    txt:'A bateria da Gira gasta-se: carrega-a nas docas — mas dois terços delas estão avariadas. A gasolina do carro também acaba; reabastece nas bombas.'},
   {ic:'hole',  tit:'BURACOS NA ESTRADA',
-   txt:'A cidade está cheia deles. Cair num custa-te 2 segundos parado. Contorna-os: há sempre caminho livre.'},
+   txt:'A cidade está cheia deles, e custam caro: os Lisboetas deixam lá uma bicicleta, o Carlos Moedas fica 2 segundos parado. Contorna-os: há sempre caminho livre.'},
   {ic:'trash', tit:'PILHAS DE SACOS DE LIXO',
-   txt:'Espetares-te no lixo custa outros 2 segundos. Fica atento às ruas: aparecem sem aviso.'},
+   txt:'Espetares-te no lixo custa o mesmo: mais uma bicicleta de menos, ou mais 2 segundos parado. Fica atento às ruas: aparecem sem aviso.'},
+  {ic:'bicis', tit:'AS BICICLETAS ACABAM',
+   txt:'Os Lisboetas começam com 5. Perde-se uma em cada obstáculo e outra sempre que a bateria se esgota. Sem bicicletas, acabou a corrida.'},
   {ic:'relog', tit:'NÃO DEIXES TERRENOS PARA TRÁS',
    txt:'Um terreno que fique muito atrás da corrida é entregue ao adversário. Não vale a pena voltar para trás.'}
 ];
@@ -3022,6 +3048,10 @@ function howtoIcon(kind,x,y,s){
     drawHoleTop(0,0,7);
   } else if(kind==='trash'){
     drawTrashTop(0,0,11);
+  } else if(kind==='bicis'){
+    drawBikeSide(-13,3,0.46,false,1);                       // uma de pé
+    ctx.save(); ctx.translate(16,7); ctx.rotate(1.6);       // outra tombada, sem bateria
+    drawBikeSide(0,0,0.4,false,null,{noRider:true,semBateria:true}); ctx.restore();
   } else if(kind==='relog'){
     ctx.fillStyle='#f4ecd7'; ctx.strokeStyle=CEL; ctx.lineWidth=2.4;
     ctx.beginPath(); ctx.arc(0,0,16,0,TAU); ctx.fill(); ctx.stroke();
@@ -3327,6 +3357,7 @@ function drawUniSide(x,y,s,t){
 }
 function drawBikeSide(x,y,s,slump,v,opts){
   const noRider = !!(opts&&opts.noRider), noWheel = opts&&opts.noWheel;
+  const semBat = !!(opts&&opts.semBateria);
   const jacket = v==null ? '#5a6b2f' : BIKE_JACKETS[v%5];
   const hair   = v==null ? '#2c2c30' : BIKE_HAIR[v%5];
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
@@ -3354,8 +3385,8 @@ function drawBikeSide(x,y,s,slump,v,opts){
   ctx.strokeStyle='#c8ccd0'; ctx.lineWidth=4;
   ctx.beginPath(); ctx.moveTo(-24,18); ctx.lineTo(-6,2); ctx.lineTo(18,8); ctx.lineTo(24,18); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(20,-6); ctx.lineTo(24,18); ctx.stroke();
-  ctx.fillStyle='#79b52d'; rr(ctx,-12,4,18,8,4); ctx.fill(); // battery panel
-  ctx.fillStyle='#e8efe4'; rr(ctx,-9,6,12,4,2); ctx.fill();
+  ctx.fillStyle= semBat? '#4a4a50' : '#79b52d'; rr(ctx,-12,4,18,8,4); ctx.fill(); // painel da bateria
+  ctx.fillStyle= semBat? '#c0392b' : '#e8efe4'; rr(ctx,-9,6, semBat?3:12, 4,2); ctx.fill();
   // handlebars + seat
   ctx.strokeStyle='#3a3f45'; ctx.lineWidth=3;
   ctx.beginPath(); ctx.moveTo(20,-6); ctx.lineTo(14,-10); ctx.stroke();
@@ -3534,6 +3565,7 @@ function drawCut(){
     case 'unicorn': cutUnicorn(p); break;
     case 'hole': cutObstacle(p,'hole'); break;
     case 'trash': cutObstacle(p,'trash'); break;
+    case 'semBicicletas': cutSemBicicletas(p); break;
     case 'end': cutEnd(p); break;
   }
   if(cut.type!=='end') crisp(()=>{ ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='12px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('(espaço para continuar)',W/2,H-14); });
@@ -4245,6 +4277,66 @@ function kickingLegs(x,y,T,s){
     ctx.beginPath(); ctx.ellipse(dir*13,-49,7.5,4.8,dir*0.4,0,TAU); ctx.fill(); ctx.stroke();
     ctx.restore();
   }
+  ctx.restore();
+}
+// ---- fim da linha dos Lisboetas: acabaram-se as bicicletas ----
+// Cemitério de Giras: umas de bateria vazia, outras sem roda, e ao fundo uma
+// espetada num monte de lixo. Só aparece quando é o JOGADOR a ficar sem elas —
+// a legenda é dirigida a quem perdeu.
+function cutSemBicicletas(p){
+  const T=cut.t;
+  // Bandas verticais: título em cima, cena no meio, legenda em baixo. Com a
+  // linha de chão mais abaixo as bicicletas caíam por trás da legenda.
+  const cx=W*0.5, horizonte=H*0.40, ground=H*0.62;
+  const skg=ctx.createLinearGradient(0,0,0,horizonte);
+  skg.addColorStop(0,'#3e4a5c'); skg.addColorStop(1,'#6a7183');
+  ctx.fillStyle=skg; ctx.fillRect(0,0,W,horizonte);
+  ctx.fillStyle='#55585e'; ctx.fillRect(0,horizonte,W,H-horizonte);
+  ctx.fillStyle='#63666c'; ctx.fillRect(0,horizonte,W,10);
+  ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=4; ctx.setLineDash([34,28]);
+  ctx.beginPath(); ctx.moveTo(0,H*0.74); ctx.lineTo(W,H*0.74); ctx.stroke(); ctx.setLineDash([]);
+  // ---- fundo: monte de lixo com uma Gira espetada lá dentro ----
+  const px=cx+W*0.27, py=ground-H*0.10;
+  trashPile(px,py,0.78,false);
+  ctx.save();
+  ctx.translate(px-30,py-44); ctx.rotate(-0.95);
+  drawBikeSide(0,0,1.3,false,null,{noRider:true,semBateria:true});
+  ctx.restore();
+  trashPile(px,py+18,0.78,true);
+  moscas(px,py-48,4,T,1.0);
+  // ---- primeiro plano: bicicletas caídas na estrada ----
+  // [x relativo, escala, rotação, roda em falta, bateria vazia]
+  const caidas=[
+    [-0.46, 1.5,  1.62, null,     true ],
+    [-0.22, 1.3, -1.48, 'frente', false],
+    [ 0.00, 1.6,  1.72, 'tras',   true ],
+    [ 0.22, 1.2,  1.55, null,     true ],
+    [-0.34, 1.1, -1.66, 'frente', true ]
+  ];
+  caidas.forEach((b,i)=>{
+    const bx=cx+b[0]*W*0.62, by=ground+(i===4? -54 : 10)+(i%2?18:0);
+    ctx.save(); ctx.translate(bx,by); ctx.rotate(b[2]);
+    drawBikeSide(0,0,b[1],false,null,{noRider:true,noWheel:b[3],semBateria:b[4]});
+    ctx.restore();
+    if(b[3]){                                   // a roda arrancada, ao lado
+      ctx.save(); ctx.translate(bx+30*(i%2?-1:1), by+30); ctx.rotate(0.3+i);
+      ctx.fillStyle='#1b1b20'; ctx.beginPath(); ctx.ellipse(0,0,15,5,0,0,TAU); ctx.fill();
+      ctx.strokeStyle=CEL; ctx.lineWidth=2; ctx.stroke();
+      ctx.restore();
+    }
+  });
+  // ---- legenda em baixo, abaixo de tudo o que está no chão ----
+  banner('Esta cidade não está para ciclistas! Sem ciclovias, Docas Gira avariadas, buracos e lixo por todo lado ninguém consegue pedalar aqui!',
+         H*0.87, '#8fbf3f', Math.min(19,W*0.023));
+  // ---- "Perdeste" em grande, por cima ----
+  const pop=clamp(T*2.2,0,1);
+  ctx.save(); ctx.translate(W/2, H*0.17); ctx.scale(pop,pop);
+  const fs=Math.min(84, W*0.115);
+  ctx.font='900 '+fs+'px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+  ctx.lineWidth=fs*0.16; ctx.strokeStyle='#0c0e1a'; ctx.strokeText('Perdeste',0,0);
+  const pg=ctx.createLinearGradient(0,-fs*0.7,0,fs*0.3);
+  pg.addColorStop(0,'#ff8a7a'); pg.addColorStop(0.5,'#e74c3c'); pg.addColorStop(1,'#8f1210');
+  ctx.fillStyle=pg; ctx.fillText('Perdeste',0,0);
   ctx.restore();
 }
 function cutEnd(p){
