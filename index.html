@@ -1524,6 +1524,27 @@ function checkObstacles(ent,dt){
     }
   }
 }
+// Raio de contacto de cada lado. O pelotão dos Lisboetas ocupa bem mais rua
+// que o carro (cinco bicicletas em leque), por isso não serve o mesmo raio
+// que se usa contra os prédios.
+function entRadius(e){ return e.kind==='lisboetas' ? 27 : 19; }
+// Choque entre os dois rivais: bloqueiam-se um ao outro, o que permite cortar
+// a linha ao adversário em vez de o atravessar. O Moedas em unicórnio salta
+// por cima, com a mesma animação de 1s dos obstáculos, e enquanto está no ar
+// passa por cima deles. Empurrão simétrico: ninguém tem prioridade.
+function checkRivals(){
+  const dx=moedas.x-lisboetas.x, dy=moedas.y-lisboetas.y;
+  const d=Math.hypot(dx,dy), min=entRadius(moedas)+entRadius(lisboetas);
+  if(moedas.unicorn && moedas.jumpT<=0 && d<min+46 &&
+     Math.cos(moedas.ang)*-dx + Math.sin(moedas.ang)*-dy > 0)   // só se vai contra eles
+    moedas.jumpT=1;
+  if(moedas.jumpT>0) return;                                    // no ar: atravessa
+  if(d>=min) return;
+  const dd=d||0.001, push=(min-d)/2;
+  moedas.x+=dx/dd*push;     moedas.y+=dy/dd*push;
+  lisboetas.x-=dx/dd*push;  lisboetas.y-=dy/dd*push;
+  collideSlide(moedas); collideSlide(lisboetas);
+}
 
 // ---------- particles ----------
 const particles=[];
@@ -4321,6 +4342,7 @@ function updatePlay(dt){
   if(aiIdle>0){ aiIdle=Math.max(0,aiIdle-dt); }   // computador parado (reação/apanhar)
   else { stepAI(opp, dt, oppSpeed(), oppAccel()); }
   checkObstacles(opp, dt);
+  checkRivals();                                  // depois de ambos se moverem
   const targetCam = player.y - VH*0.35;
   camY = lerp(camY, targetCam, 1-Math.pow(0.001,dt));
   if(camY<-40) camY=-40;
