@@ -1403,11 +1403,11 @@ const familiesHoused = ()=> plotsSaved*FAMILIES_PER_PLOT;
 const luxCount = ()=> hotelsBuilt+condosBuilt;
 function makeMoedas(isPlayer){
   return {kind:'moedas', x:colX(2)+CELL_W/2, y:120, ang:-Math.PI/2, isPlayer, speed:0, gas:1, unicorn:false,
-          stun:0, iframes:0, jumpT:0};
+          stun:0, jumpT:0};
 }
 function makeLisboetas(isPlayer){
   return {kind:'lisboetas', x:colX(1)+CELL_W/2, y:120, ang:-Math.PI/2, isPlayer, speed:0, battery:1, riders:5,
-          stun:0, iframes:0, jumpT:0};
+          stun:0, jumpT:0};
 }
 function startGame(side){
   playerSide = side;
@@ -1415,7 +1415,8 @@ function startGame(side){
   moedas = makeMoedas(side==='moedas');
   lisboetas = makeLisboetas(side==='lisboetas');
   player = side==='moedas'?moedas:lisboetas;
-  camY = player.y - H*0.35;
+  updateView();
+  camY = player.y - VH*0.35;
   plotsSaved=0; plotsSold=0; plotsDone=0; hotelsBuilt=0; condosBuilt=0;
   moedasUnicorn=false;
   particles.length=0;
@@ -1495,9 +1496,10 @@ function obstacleNear(x,y){
 // Choque com obstáculos de rua. Unicórnio nunca choca: ao aproximar-se
 // salta automaticamente por cima (jumpT conta 1s de animação). Os restantes
 // ficam atordoados 2s (a piscar vermelho); o jogador vê ainda a cutscene.
+// Cada obstáculo só apanha cada lado UMA vez (o.caiu): sem isso, ficar
+// encostado a um buraco disparava a mesma cutscene vezes sem conta.
 function checkObstacles(ent,dt){
   if(ent.jumpT>0) ent.jumpT-=dt;
-  if(ent.iframes>0) ent.iframes-=dt;
   for(const o of obstacles){
     if(Math.abs(o.y-ent.y)>90) continue;
     const dx=ent.x-o.x, dy=ent.y-o.y, d=Math.hypot(dx,dy);
@@ -1507,13 +1509,15 @@ function checkObstacles(ent,dt){
         ent.jumpT=1;
       continue;
     }
-    if(ent.iframes>0 || ent.stun>0) continue;
+    if(ent.stun>0) continue;
+    if(o.caiu && o.caiu[ent.kind]) continue;
     if(d < OBST_R+PLAYER_R){
       const dd=d||0.001, push=(OBST_R+PLAYER_R-d)+8;
       ent.x+=dx/dd*push; ent.y+=dy/dd*push;      // ressalto para fora
+      (o.caiu || (o.caiu={}))[ent.kind]=true;
       // O stun só corre em updatePlay, por isso os 2s contam DEPOIS da
       // cutscene: primeiro a cena (saltável), depois 2s parado a piscar.
-      ent.stun=2; ent.iframes=3.4; ent.speed=0;
+      ent.stun=2; ent.speed=0;
       if(ent.isPlayer) playCut(o.type,2.6);
       else aiIdle=Math.max(aiIdle,2);
       return;
@@ -1559,7 +1563,9 @@ function tearFountain(cx,cy,scale){
 }
 
 // ---------- state ----------
-let state = IS_TOUCH ? 'orient' : 'menu';   // aviso de orientação no arranque (touch)
+// O aviso de orientação só faz sentido se o telemóvel ESTIVER ao alto: quem já
+// abre em paisagem não precisa de o dispensar, e ao rodar ele sai sozinho.
+let state = (IS_TOUCH && H>W) ? 'orient' : 'menu';
 function resetToMenu(){ state='menu'; }
 let cut=null;
 function playCut(type,dur,data){ cut={type,t:0,dur,data:data||{}}; state='cut'; }
@@ -1611,10 +1617,13 @@ function setMusic(on){ musicOn=on; if(musicGain) musicGain.gain.setTargetAtTime(
 
 // ---------- ecrã congelado / pausa / contagem ----------
 function drawScene(){
+  updateView();                                 // zoom antes de o aplicar à matriz
+  ctx.save(); ctx.scale(zoom,zoom);              // zoom-out do mundo em ecrã estreito
   drawWorld();
   if(playerSide==='moedas'){ drawLisboetasEnt(lisboetas); drawMoedasEnt(moedas); }
   else { drawMoedasEnt(moedas); drawLisboetasEnt(lisboetas); }
   drawParticles();
+  ctx.restore();
   crisp(()=>{ drawOppMarker(); drawHUD(); });   // UI nítida sobre o mundo pixelizado
 }
 // Chapa na berma do ecrã quando o adversário sai do enquadramento: aponta
@@ -1622,7 +1631,10 @@ function drawScene(){
 function drawOppMarker(){
   const opp = (playerSide==='moedas') ? lisboetas : moedas;
   if(!opp || !player) return;
-  const sx=opp.x, sy=w2s(opp.y);
+  // Coordenadas de ECRÃ: antes usava-se opp.x directamente contra os limites
+  // do ecrã. Em desktop camX≈0 e passava despercebido, mas em telemóvel camX
+  // chega a 900 e a chapa aparecia com o adversário à vista (e vice-versa).
+  const p=worldToScreen(opp.x,opp.y), sx=p.x, sy=p.y;
   if(sx>-12 && sx<W+12 && sy>-12 && sy<H+12) return;   // ainda à vista
   // margens com folga para a ponta da seta (32px) não sair do ecrã
   const padT=SAFE.t+hudHeight()+70, padB=SAFE.b+(IS_TOUCH?62:46), padL=SAFE.l+42, padR=SAFE.r+42;
@@ -1792,14 +1804,24 @@ function drawPause(){
  });
 }
 // ================= DRAW: WORLD =================
-function w2s(y){ return H - (y - camY); }
+// Campo de visão: em ecrãs estreitos (telemóvel ao alto) 375px de largura só
+// mostravam 1,4 das 4 colunas do mundo — não se via um terreno ao lado nem um
+// obstáculo a chegar. O mundo passa a ser desenhado com um zoom-out até se
+// verem ~620px de mundo, e VW/VH são as medidas do mundo visível. O limite
+// inferior evita que os veículos fiquem pequenos demais para se perceberem.
+let zoom=1, VW=0, VH=0;
+function updateView(){ zoom=clamp(W/620,0.6,1); VW=W/zoom; VH=H/zoom; }
+function w2s(y){ return VH - (y - camY); }
 function sx(x){ return x-camX; }
+// mundo -> ecrã (para a UI, que se desenha sem o zoom aplicado)
+function worldToScreen(x,y){ return {x:(x-camX)*zoom, y:(VH-(y-camY))*zoom}; }
 function drawWorld(){
-  ctx.fillStyle='#cfc6ae'; ctx.fillRect(0,0,W,H);
-  camX = clamp(player.x - W/2, -20, WORLD_W - W + 20);
-  if(WORLD_W < W) camX = (WORLD_W - W)/2;
+  updateView();
+  ctx.fillStyle='#cfc6ae'; ctx.fillRect(0,0,VW,VH);
+  camX = clamp(player.x - VW/2, -20, WORLD_W - VW + 20);
+  if(WORLD_W < VW) camX = (WORLD_W - VW)/2;
   drawRiver();
-  const topWorld = camY + H, botWorld = camY;
+  const topWorld = camY + VH, botWorld = camY;
   const rowStart=Math.max(0,Math.floor(botWorld/ROW_H)-1);
   const rowEnd=Math.floor(topWorld/ROW_H)+1;
   ensureRows(rowEnd+2);
@@ -1807,7 +1829,7 @@ function drawWorld(){
   const cityLeft=RIVER_W-camX;
   const asg=ctx.createLinearGradient(cityLeft,0,cityLeft+80,0);
   asg.addColorStop(0,'#585c62'); asg.addColorStop(1,'#6b6f74');
-  ctx.fillStyle=asg; ctx.fillRect(cityLeft,0,(WORLD_W-RIVER_W),H);
+  ctx.fillStyle=asg; ctx.fillRect(cityLeft,0,(WORLD_W-RIVER_W),VH);
   // textura de asfalto (grão subtil, ancorado ao mundo)
   if(!asphaltPat){
     const nc=document.createElement('canvas'); nc.width=64; nc.height=64;
@@ -1818,18 +1840,18 @@ function drawWorld(){
   }
   ctx.save(); ctx.translate(-(camX%64),(camY%64));
   ctx.fillStyle=asphaltPat;
-  ctx.fillRect(cityLeft+(camX%64)-64,-70,(WORLD_W-RIVER_W)+128,H+140);
+  ctx.fillRect(cityLeft+(camX%64)-64,-70,(WORLD_W-RIVER_W)+128,VH+140);
   ctx.restore();
   // vertical lane dashes
   ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=2.5; ctx.setLineDash([15,17]);
   for(let c=0;c<=COLS;c++){
     const sxp=(colX(c)-STREET/2)-camX;
-    ctx.beginPath(); ctx.moveTo(sxp,0); ctx.lineTo(sxp,H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sxp,0); ctx.lineTo(sxp,VH); ctx.stroke();
   }
   // horizontal lane dashes
   for(let row=rowStart; row<=rowEnd+1; row++){
     const sy=w2s(row*ROW_H+STREET/2);
-    if(sy<-10||sy>H+10) continue;
+    if(sy<-10||sy>VH+10) continue;
     ctx.beginPath(); ctx.moveTo(cityLeft,sy); ctx.lineTo(WORLD_W-camX,sy); ctx.stroke();
   }
   ctx.setLineDash([]);
@@ -1841,9 +1863,9 @@ function drawWorld(){
   }
   drawObstacles(botWorld-120, topWorld+120);
   // luz solar quente (tom realista)
-  const sun=ctx.createRadialGradient(W*0.3,-40,60,W*0.3,-40,H*1.25);
+  const sun=ctx.createRadialGradient(VW*0.3,-40,60,VW*0.3,-40,VH*1.25);
   sun.addColorStop(0,'rgba(255,238,196,0.12)'); sun.addColorStop(0.55,'rgba(255,238,196,0.03)'); sun.addColorStop(1,'rgba(20,24,48,0.10)');
-  ctx.fillStyle=sun; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=sun; ctx.fillRect(0,0,VW,VH);
 }
 // ---------- obstáculos de rua (vista de cima) ----------
 function drawObstacles(y0,y1){
@@ -1913,12 +1935,12 @@ function drawRiver(){
   const rx=0-camX, rw=RIVER_W;
   const g=ctx.createLinearGradient(rx,0,rx+rw,0);
   g.addColorStop(0,'#2e5a84'); g.addColorStop(0.7,'#4a7ca8'); g.addColorStop(1,'#5f93bf');
-  ctx.fillStyle=g; ctx.fillRect(rx,0,rw,H);
+  ctx.fillStyle=g; ctx.fillRect(rx,0,rw,VH);
   const t=performance.now()*0.001;
   // shimmer
   ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=2;
   for(let i=0;i<7;i++){
-    const yy=((i*63 + t*22)%(H+40))-20;
+    const yy=((i*63 + t*22)%(VH+40))-20;
     ctx.beginPath();
     for(let x=6;x<rw-4;x+=10){ const y=yy+Math.sin((x*0.09)+t*2+i)*3.2; if(x===6)ctx.moveTo(rx+x,y); else ctx.lineTo(rx+x,y);}
     ctx.stroke();
@@ -1926,15 +1948,15 @@ function drawRiver(){
   // sparkles
   ctx.fillStyle='rgba(255,255,255,.7)';
   for(let i=0;i<10;i++){
-    const yy=((i*97+t*30)%(H+20))-10, xx=rx+20+((i*53)%(rw-40));
+    const yy=((i*97+t*30)%(VH+20))-10, xx=rx+20+((i*53)%(rw-40));
     if(Math.sin(t*3+i*2)>0.6) ctx.fillRect(xx,yy,2.5,2.5);
   }
   // veleiros
   for(let i=0;i<3;i++){
     const spd=[14,22,9][i];
-    const by2=((t*spd+i*300)%(H+320))-160;
+    const by2=((t*spd+i*300)%(VH+320))-160;
     const bx2=rx+rw*(0.22+0.27*i);
-    ctx.save(); ctx.translate(bx2,H-by2+ Math.sin(t*1.8+i*2)*2);
+    ctx.save(); ctx.translate(bx2,VH-by2+ Math.sin(t*1.8+i*2)*2);
     ctx.rotate(Math.sin(t*1.2+i)*0.05);
     // esteira
     ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1.5;
@@ -1957,8 +1979,8 @@ function drawRiver(){
     ctx.restore();
   }
   // little ferry
-  const fy=((t*26)%(H+240))-120;
-  ctx.save(); ctx.translate(rx+rw*0.4,H-fy);
+  const fy=((t*26)%(VH+240))-120;
+  ctx.save(); ctx.translate(rx+rw*0.4,VH-fy);
   ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(3,4,13,24,0,0,TAU); ctx.fill();
   ctx.fillStyle='#e8873a'; rr(ctx,-11,-24,22,48,10); ctx.fill();
   ctx.strokeStyle='#a85a1c'; ctx.lineWidth=2; ctx.stroke();
@@ -1969,14 +1991,14 @@ function drawRiver(){
   ctx.restore();
   // Ponte 25 de Abril
   const by=w2s(9*ROW_H);
-  if(by>-280 && by<H+280) drawBridge(rx, by, rw);
+  if(by>-280 && by<VH+280) drawBridge(rx, by, rw);
   // quay edge
-  ctx.fillStyle='#c9bd9c'; ctx.fillRect(rx+rw-6,0,6,H);
+  ctx.fillStyle='#c9bd9c'; ctx.fillRect(rx+rw-6,0,6,VH);
   ctx.fillStyle='rgba(90,75,45,.5)';
-  for(let i=0;i<H;i+=14){ ctx.fillRect(rx+rw-5,i,4,2); }
+  for(let i=0;i<VH;i+=14){ ctx.fillRect(rx+rw-5,i,4,2); }
   ctx.fillStyle='rgba(20,40,70,.7)';
   ctx.font='bold 12px Trebuchet MS'; ctx.textAlign='center';
-  ctx.fillText('Rio Tejo', rx+rw/2, H-16);
+  ctx.fillText('Rio Tejo', rx+rw/2, VH-16);
 }
 function drawBridge(rx,by,rw){
   ctx.save();
@@ -2033,7 +2055,7 @@ function drawBridge(rx,by,rw){
 }
 function drawFeature(f){
   const x=sx(f.x), y=w2s(f.y);
-  if(x<-CELL_W||x>W+CELL_W||y<-CELL_H||y>H+CELL_H) return;
+  if(x<-CELL_W||x>VW+CELL_W||y<-CELL_H||y>VH+CELL_H) return;
   let tile=null;
   switch(f.type){
     case 'building': tile=TILE.bld[f.seed%TILE.bld.length]; break;
@@ -2727,6 +2749,15 @@ function drawProtester(x,y,s,v,t,signLines){
   ctx.restore();
 }
 let menuBtns=[];
+// Escolhe o maior corpo que ainda cabe em maxw e deixa a fonte activa. Em
+// ecrãs estreitos vários rótulos saíam cortados por serem de tamanho fixo.
+function fitFont(txt,maxw,baseFs,tpl,minFs){
+  let fs=baseFs;
+  ctx.font=tpl.replace('%s',fs);
+  const w=ctx.measureText(txt).width;
+  if(w>maxw){ fs=Math.max(minFs||8, fs*maxw/w); ctx.font=tpl.replace('%s',fs); }
+  return fs;
+}
 function drawMenuBtn(b,col,hi,txt){
   const hover=mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h;
   ctx.fillStyle='rgba(0,0,0,.5)'; rr(ctx,b.x+4,b.y+5,b.w,b.h,14); ctx.fill();
@@ -2753,7 +2784,8 @@ function greenMeterUI(x,y,w,h){
   ctx.strokeStyle='#0a0f1a'; ctx.lineWidth=2.5; rr(ctx,x,y,w,h,8); ctx.stroke();
   ctx.strokeStyle='rgba(10,15,26,.4)';
   for(let i=1;i<12;i++){ ctx.beginPath(); ctx.moveTo(x+w*i/12,y); ctx.lineTo(x+w*i/12,y+h); ctx.stroke(); }
-  ctx.fillStyle='#fff'; ctx.font='900 '+clamp(h*0.54,9,13)+'px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='#fff'; ctx.textAlign='center';
+  fitFont('DIFICULDADE MÁXIMA ☠', w-14, clamp(h*0.54,9,13), '900 %spx "Arial Black", Impact, sans-serif', 7);
   ctx.fillText('DIFICULDADE MÁXIMA ☠',x+w/2,y+h*0.70);
 }
 function redMeterUI(x,y,w,t,h){
@@ -2768,8 +2800,8 @@ function redMeterUI(x,y,w,t,h){
   ctx.restore();
   ctx.strokeStyle='#0a0f1a'; ctx.lineWidth=3; rr(ctx,x,y,w,h,9); ctx.stroke();
   ctx.strokeStyle=`rgba(255,240,120,${0.35+fl*0.65})`; ctx.lineWidth=2; rr(ctx,x+3,y+3,w-6,h-6,6); ctx.stroke();
-  ctx.fillStyle= fl>0.5? '#fff':'#ffe0a0';
-  ctx.font='900 '+clamp(h*0.53,10,17)+'px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle= fl>0.5? '#fff':'#ffe0a0'; ctx.textAlign='center';
+  fitFont('DIFICULDADE FÁCIL', w-14, clamp(h*0.53,10,17), '900 %spx "Arial Black", Impact, sans-serif', 7);
   ctx.fillText('DIFICULDADE FÁCIL',x+w/2,y+h*0.72);
 }
 function drawMenu(){
@@ -2895,8 +2927,9 @@ function drawMenu(){
       const hover=mouse.x>b.x&&mouse.x<b.x+b.w&&mouse.y>b.y&&mouse.y<b.y+b.h;
       ctx.fillStyle='rgba(10,13,24,.82)'; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.fill();
       ctx.strokeStyle=hover?'#ffd23f':'rgba(240,220,160,.6)'; ctx.lineWidth=2; rr(ctx,b.x,b.y,b.w,b.h,8); ctx.stroke();
-      ctx.fillStyle='#f4ecd7'; ctx.font='900 12px "Arial Black", Impact, sans-serif'; ctx.textAlign='center';
-      ctx.fillText(b.txt, b.x+b.w/2, b.y+b.h/2+4.5);
+      ctx.fillStyle='#f4ecd7'; ctx.textAlign='center';
+      const fs=fitFont(b.txt, b.w-12, 12, '900 %spx "Arial Black", Impact, sans-serif', 8);
+      ctx.fillText(b.txt, b.x+b.w/2, b.y+b.h/2+fs*0.36);
     }
   }
   const lb={x:W*0.24-bw/2,y:by,w:bw,h:bh,side:'lisboetas'};
@@ -3466,7 +3499,8 @@ function wrap(txt,maxw,size){
 }
 // ================= CUTSCENES =================
 function drawCut(){
-  drawWorld();
+  updateView();
+  ctx.save(); ctx.scale(zoom,zoom); drawWorld(); ctx.restore();   // fundo com o mesmo zoom
   ctx.fillStyle='rgba(6,8,16,.6)'; ctx.fillRect(0,0,W,H);
   const p=clamp(cut.t/cut.dur,0,1);
   ctx.textAlign='center';
@@ -4077,12 +4111,17 @@ function cutObstacle(p,kind){
   const T=cut.t;
   const cx=W*0.52, ground=H*0.80;
   obstScene();
-  if(kind==='hole') holeSideBack(cx+40,ground,1.15); else trashPile(cx+70,ground-10,1.05,false);
+  if(kind==='hole') holeSideBack(cx+70,ground,1.15); else trashPile(cx+70,ground-10,1.05,false);
   if(playerSide==='lisboetas'){
     if(kind==='hole'){
-      ctx.save(); ctx.translate(cx-60,ground+18); ctx.rotate(1.62);   // bicicleta tombada
+      ctx.save();
+      ctx.beginPath();                                                // idem: nada por cima do buraco
+      ctx.rect(0,0,W,H);
+      ctx.ellipse(cx+70,ground,104*1.15,30*1.15,0,0,TAU);
+      ctx.clip('evenodd');
+      ctx.translate(cx-96,ground+18); ctx.rotate(1.62);               // bicicleta tombada
       drawBikeSide(0,0,1.9,false,null,{noRider:true}); ctx.restore();
-      holeSideFront(cx+40,ground,1.15);
+      holeSideFront(cx+70,ground,1.15);
       fallenRider(cx-210,ground-14,T,1.55);
     } else {
       ctx.save(); ctx.translate(cx-10,ground-86); ctx.rotate(-0.85);  // bicicleta espetada
@@ -4095,15 +4134,27 @@ function cutObstacle(p,kind){
     // Carlos fora do carro, a chorar em arco e a dar pontapés no carro
     const kick=Math.max(0,Math.sin(T*9));
     ctx.save();
-    if(kind==='hole'){ ctx.translate(cx+58,ground-14); ctx.rotate(0.62); }   // focinho no buraco
-    else { ctx.translate(cx+86,ground-96); ctx.rotate(-0.42); }              // espetado no lixo
-    if(kick>0.9) ctx.rotate(0.025);
-    drawCarSide(0,0,1.85,false,undefined,true,false);
+    if(kind==='hole'){
+      // Só se vê o que está acima do solo E fora da boca do buraco (even-odd
+      // entre o rectângulo até à linha do chão e a elipse). Com o recorte só
+      // pela elipse, o focinho passava por baixo e reaparecia do lado oposto.
+      ctx.beginPath();
+      ctx.rect(0,0,W,ground+4);
+      ctx.ellipse(cx+70,ground,104*1.15,30*1.15,0,0,TAU);
+      ctx.clip('evenodd');
+      ctx.translate(cx+10,ground-44); ctx.rotate(0.6);
+      if(kick>0.9) ctx.rotate(0.025);
+      drawCarSide(0,0,1.6,false,undefined,true,false);
+    } else {
+      ctx.translate(cx+86,ground-96); ctx.rotate(-0.42);                    // espetado no lixo
+      if(kick>0.9) ctx.rotate(0.025);
+      drawCarSide(0,0,1.85,false,undefined,true,false);
+    }
     ctx.restore();
-    if(kind==='hole') holeSideFront(cx+40,ground,1.15);
+    if(kind==='hole') holeSideFront(cx+70,ground,1.15);
     else { trashPile(cx+70,ground+22,1.05,true); moscas(cx+80,ground-120,5,T,1.3); }
     // encostado ao carro: o pé do pontapé tem de lhe chegar à chapa
-    const figX=cx+(kind==='hole'?-104:-92), figY=ground+10;
+    const figX=cx+(kind==='hole'?-148:-92), figY=ground+10;
     drawMoedasFig(figX,figY,1.6,'kick',T,1);   // virado para o carro (à direita)
     tearFountain(figX,figY-86,1.0);            // mesma escala das outras cutscenes
   }
@@ -4270,14 +4321,14 @@ function updatePlay(dt){
   if(aiIdle>0){ aiIdle=Math.max(0,aiIdle-dt); }   // computador parado (reação/apanhar)
   else { stepAI(opp, dt, oppSpeed(), oppAccel()); }
   checkObstacles(opp, dt);
-  const targetCam = player.y - H*0.35;
+  const targetCam = player.y - VH*0.35;
   camY = lerp(camY, targetCam, 1-Math.pow(0.001,dt));
   if(camY<-40) camY=-40;
   interactCd=Math.max(0,interactCd-dt);
   checkStations(player);
   checkPlots(player, playerSide);
   checkPlots(opp, playerSide==='moedas'?'lisboetas':'moedas');
-  ensureRows(Math.floor((camY+H)/ROW_H)+3);
+  ensureRows(Math.floor((camY+VH)/ROW_H)+3);
   // quem não reclama um terreno antes de ele ficar ~2 ecrãs atrás perde-o para o adversário
   // (garante que o jogo termina sempre e dá urgência à corrida)
   for(const p of plots) if(!p.claimedBy && camY - p.y > 1.8*H) resolveAbandonedPlot(p);
@@ -4418,6 +4469,7 @@ function frame(now){
   updateMusic();
   lofiBegin();   // cena inteira para a grelha de pixels; UI/texto via crisp()
   if(state==='orient'){
+    if(W>=H){ state='menu'; }                 // rodou para paisagem: aviso cumprido
     drawOrient();
     if(mouse.clicked && inObrigadoBtn(mouse.x,mouse.y)){ initAudio(); state='menu'; }
   } else if(state==='menu'){

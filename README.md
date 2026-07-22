@@ -15,14 +15,18 @@ Corre para chegar primeiro aos 10 terrenos que o **Carlos Moedas** quer vender e
 - **Setas** — mover
 - **Espaço** — avançar cutscenes
 - **ESC** — menu de pausa (continuar, música on/off, sair para o menu)
+- **Toque** — arrasta num dos cantos de baixo para conduzir (serve destros e canhotos)
+
+O menu principal tem um ecrã **Como Jogar** com as regras todas.
 
 ## ✨ Características
 
 - Lisboa procedural: Marquês de Pombal, Torre de Belém, Castelo de S. Jorge, estádios, Aqueduto, Amoreiras, Basílica da Estrela, Ponte 25 de Abril…
 - Dois lados jogáveis: Lisboetas (**Dificuldade MÁXIMA** — bateria fraca e docas Gira avariadas) ou Moedas (**Dificuldade FÁCIL** — o camião de gás nunca o deixa ficar mal)
+- Obstáculos de rua bem lisboetas: buracos no alcatrão e pilhas de sacos de lixo, que custam 2 segundos parado
 - Aos 5 terrenos perdidos, Moedas visita a *Fábrica de Unicórnios* 🦄🌈
 - PWA instalável: funciona offline e em ecrã inteiro (`manifest.json` + service worker)
-- Estilo pixel-art 2D com scanlines retro
+- Joga-se ao alto ou deitado; em ecrã estreito a câmara afasta-se para caber mais cidade
 
 ## 📦 Publicar no GitHub Pages
 
